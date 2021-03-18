@@ -27,6 +27,9 @@ std::optional<std::string> getParam(const restbed::Request& req, const std::stri
         } else {
             return std::nullopt;
         }
+
+    default:
+        return std::nullopt;
     };
 }
 
