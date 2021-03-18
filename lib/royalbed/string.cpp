@@ -43,7 +43,7 @@ unsigned int fromString(const std::string& str)
 {
     const auto val = fromString<unsigned long>(str);
     if (val > std::numeric_limits<int>::max()) {
-        const auto message = fmt::format("Unable convert '{}' to unsigned", str);
+        const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
         throw std::invalid_argument(message);
     }
 
