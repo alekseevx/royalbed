@@ -1,7 +1,8 @@
+#include <filesystem>
 #include <map>
 #include <optional>
-#include <string>
 #include <string_view>
+#include <string>
 
 #include <royalbed/mime-type.h>
 
@@ -10,26 +11,20 @@ namespace royalbed {
 namespace {
 using namespace std::string_view_literals;
 
-std::string_view getFileExt(std::string_view fileName)
+std::string getFileExt(std::string_view fileName)
 {
-    std::string_view retval;
-
-    const auto p = fileName.find_last_of('.');
-    if (p != std::string_view::npos) {
-        retval = fileName.substr(p + 1);
-    }
-
-    return retval;
+    namespace fs = std::filesystem;
+    return fs::path(fileName).extension();
 }
 
 }   // namespace
 
 std::optional<std::string_view> mimeTypeForExt(std::string_view fileExt)
 {
-    static const auto mimeTypes = std::multimap<std::string_view, std::string_view>{
-      {"json"sv, "text/json"sv},
-      {"yml"sv, "text/yaml"sv},
-      {"js"sv, "text/javascript"sv},
+    static const auto mimeTypes = std::map<std::string_view, std::string_view>{
+      {".json"sv, "text/json"sv},
+      {".yml"sv, "text/yaml"sv},
+      {".js"sv, "text/javascript"sv},
     };
 
     const auto it = mimeTypes.find(fileExt);
