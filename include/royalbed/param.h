@@ -5,8 +5,9 @@
 #include <exception>
 #include <functional>
 #include <optional>
-#include <string>
 #include <string_view>
+#include <string>
+#include <type_traits>
 
 #include <corvusoft/restbed/request.hpp>
 #include <corvusoft/restbed/status_code.hpp>
@@ -91,6 +92,12 @@ public:
 private:
     std::optional<T> m_data;
 };
+
+template<typename T>
+inline constexpr bool isParam = false;
+
+template<typename T, const std::string_view& name, typename... Properties>
+inline constexpr bool isParam<Param<T, name, Properties...>> = true;
 
 template<typename T, const std::string_view& name, typename... Properties>
 using PathParam = Param<T, name, ParamLocProp<ParamLoc::Path>, Properties...>;

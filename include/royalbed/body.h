@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 
 #include <corvusoft/restbed/request.hpp>
+#include <corvusoft/restbed/session.hpp>
 #include <corvusoft/restbed/status_code.hpp>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -24,6 +26,10 @@ public:
 
     Body& operator=(const Body&) = default;
     Body& operator=(Body&&) noexcept = default;
+
+    explicit Body(const restbed::Session& session)
+      : m_data(parseBody<T>(session))
+    {}
 
     explicit Body(const restbed::Request& request)
       : m_data(parseBody<T>(request))
@@ -49,8 +55,18 @@ private:
 };
 
 template<typename T>
+inline constexpr bool isBody = false;
+
+template<typename T>
+inline constexpr bool isBody<Body<T>> = true;
+
+template<typename T>
 T parseBody(const restbed::Request& req)
 {
+    static_assert(std::is_constructible_v<nlohmann::json, T>, "T cannot be converted to json."
+                                                              "Please define a to_json function for it."
+                                                              "See https://github.com/nlohmann/json#basic-usage");
+
     const auto jsonValue = parseBody<nlohmann::json>(req);
 
     try {
@@ -59,6 +75,12 @@ T parseBody(const restbed::Request& req)
         const auto message = fmt::format("Failed to parse request body: {}", ex.what());
         throw HttpError(restbed::BAD_REQUEST, message);
     }
+}
+
+template<typename T>
+T parseBody(const restbed::Session& session)
+{
+    return parseBody<T>(*session.get_request());
 }
 
 template<>
