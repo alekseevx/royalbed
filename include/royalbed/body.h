@@ -17,6 +17,9 @@ template<typename T>
 T parseBody(const restbed::Request& request);
 
 template<typename T>
+T parseBody(const restbed::Session& session);
+
+template<typename T>
 class Body final
 {
 public:
@@ -45,7 +48,7 @@ public:
         return &m_data;
     }
 
-    const T& get()
+    const T& get() const
     {
         return m_data;
     }

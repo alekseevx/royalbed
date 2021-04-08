@@ -28,13 +28,13 @@ using LowLevelHandler = void(std::shared_ptr<restbed::Session>);
  * The return value is automatically serialized and passed as the response.
  */
 template<typename R, typename... Args>
-using RequestHandler = R(Args&&...);
+using RequestHandler = R(const Args&...);
 
 /**
  * Similar to RequestHandler, except that the request is processed asynchronously.
  */
 template<typename R, typename... Args>
-using AsyncRequestHandler = nhope::Future<R>(Args&&...);
+using AsyncRequestHandler = nhope::Future<R>(const Args&...);
 
 template<typename T>
 inline constexpr bool isRequstHandlerArg = isParam<T> || isBody<T>;
@@ -45,9 +45,9 @@ inline constexpr bool isLowLevelHandler = std::is_invocable_v<Handler, std::shar
 template<typename... Args>
 constexpr void checkRequstHandlerArgTypes()
 {
-    static_assert((isRequstHandlerArg<Args> && ...), "RequestHandler argument must be one of\n"
-                                                     "\tParam <royalbed/param.h>)"
-                                                     "\tBody <royalbed/body.h>");
+    static_assert((isRequstHandlerArg<std::decay_t<Args>> && ...), "RequestHandler argument must be one of\n"
+                                                                   "\tParam <royalbed/param.h>)"
+                                                                   "\tBody <royalbed/body.h>");
 }
 
 template<typename R>
@@ -65,13 +65,14 @@ std::function<LowLevelHandler> makeLowLevelHandler(int status, std::function<Req
     checkRequstHandlerResult<R>();
     checkRequstHandlerArgTypes<Args...>();
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     return [status, handler = std::move(handler)](std::shared_ptr<restbed::Session> session) {
         try {
             if constexpr (std::is_void_v<R>) {
-                handler(Args(*session)...);
+                handler(std::decay_t<Args>(*session)...);
                 session->close(status);
             } else {
-                R result = handler(Args(*session)...);
+                R result = handler(std::decay_t<Args>(*session)...);
                 sendJson(*session, status, result);
             }
         } catch (...) {

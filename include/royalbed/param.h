@@ -10,6 +10,7 @@
 #include <type_traits>
 
 #include <corvusoft/restbed/request.hpp>
+#include <corvusoft/restbed/session.hpp>
 #include <corvusoft/restbed/status_code.hpp>
 #include <fmt/core.h>
 
@@ -39,6 +40,9 @@ struct ParamLocProp;
 template<typename T>
 std::optional<T> getParam(const restbed::Request& req, const ParamProperties<T>& paramProps);
 
+template<typename T>
+std::optional<T> getParam(const restbed::Session& session, const ParamProperties<T>& paramProps);
+
 template<typename T, typename... Properties>
 ParamProperties<T> makeProperties(std::string_view name);
 
@@ -55,6 +59,10 @@ public:
 
     explicit Param(const restbed::Request& req)
       : m_data(getParam<T>(req, Param::props()))
+    {}
+
+    explicit Param(const restbed::Session& session)
+      : m_data(getParam<T>(session, Param::props()))
     {}
 
     const T& operator*() const
@@ -194,6 +202,12 @@ std::optional<T> getParam(const restbed::Request& req, const ParamProperties<T>&
         const auto message = fmt::format("Failed to get '{}' parameter: {}", paramProps.name, ex.what());
         throw HttpError(restbed::BAD_REQUEST, message);
     }
+}
+
+template<typename T>
+std::optional<T> getParam(const restbed::Session& session, const ParamProperties<T>& paramProps)
+{
+    return getParam<T>(*session.get_request(), paramProps);
 }
 
 }   // namespace royalbed
