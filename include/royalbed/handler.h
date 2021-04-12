@@ -19,7 +19,7 @@
 namespace royalbed {
 
 /**
- * The low-level handler works directly with the session.
+ * A low-level handler works directly with the session.
  */
 using LowLevelHandler = void(std::shared_ptr<restbed::Session>);
 
@@ -88,7 +88,7 @@ std::function<LowLevelHandler> makeLowLevelHandler(int status, std::function<Req
 //     checkRequstHandlerArgTypes<Args...>();
 // }
 
-template<typename Handler>
+template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
 std::function<LowLevelHandler> makeLowLevelHandler(int status, Handler&& handler)
 {
     return makeLowLevelHandler(status, std::function(handler));

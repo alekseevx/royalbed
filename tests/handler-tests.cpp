@@ -1,9 +1,6 @@
 #include <cstdint>
-#include <functional>
-#include <memory>
-#include <string_view>
 #include <string>
-#include <thread>
+#include <string_view>
 
 #include <corvusoft/restbed/http.hpp>
 #include <corvusoft/restbed/request.hpp>
@@ -17,11 +14,12 @@
 #include <gtest/gtest.h>
 
 #include <nlohmann/json.hpp>
+
 #include <royalbed/handler.h>
+#include <royalbed/http-error.h>
 #include <royalbed/param.h>
 
 #include "helpers.h"
-#include "royalbed/http-error.h"
 
 namespace {
 using namespace std::literals;
@@ -101,8 +99,8 @@ TEST(Handler, ParamsRequestBodyResponce)   // NOLINT
     auto req = makeRequest("/test/1000?status=active", "GET");
     req->add_header("Content-Type", "application/json");
     setBody(req, "\"data\"");
-    auto resp = restbed::Http::sync(req);
 
+    auto resp = restbed::Http::sync(req);
     EXPECT_EQ(resp->get_status_code(), restbed::OK);
 
     const auto respBody = fetchBody(resp);

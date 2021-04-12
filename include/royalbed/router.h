@@ -31,22 +31,22 @@ public:
     explicit Router(std::string_view prefix = "/");
     ~Router();
 
-    template<typename Handler>
-    Router& get(std::string_view path, Handler&& handler)
-    {
-        return this->get(path, restbed::OK, std::forward<Handler>(handler));
-    }
+    Router& get(std::string_view path, const std::function<LowLevelHandler>& handler);
 
     template<typename Handler>
     Router& get(std::string_view path, int status, Handler&& handler)
     {
         auto lowLevelHandler = makeLowLevelHandler(status, std::forward<Handler>(handler));
-        return this->get(path, std::move(lowLevelHandler));
+        return this->get(path, lowLevelHandler);
     }
 
-    Router& get(std::string_view path, const std::function<LowLevelHandler>& handler);
+    template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
+    Router& get(std::string_view path, Handler&& handler)
+    {
+        return this->get(path, restbed::OK, std::forward<Handler>(handler));
+    }
 
-    template<typename Handler>
+    template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& put(std::string_view path, Handler&& handler)
     {
         return this->put(path, restbed::OK, std::forward<Handler>(handler));
@@ -56,12 +56,12 @@ public:
     Router& put(std::string_view path, int status, Handler&& handler)
     {
         auto lowLevelHandler = makeLowLevelHandler(status, std::forward<Handler>(handler));
-        return this->addHandler("PUT", path, std::move(lowLevelHandler));
+        return this->addHandler("PUT", path, lowLevelHandler);
     }
 
     Router& put(std::string_view path, const std::function<LowLevelHandler>& handler);
 
-    template<typename Handler>
+    template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& post(std::string_view path, Handler&& handler)
     {
         return this->post(path, restbed::CREATED, std::forward<Handler>(handler));
@@ -71,12 +71,12 @@ public:
     Router& post(std::string_view path, int status, Handler&& handler)
     {
         auto lowLevelHandler = makeLowLevelHandler(status, std::forward<Handler>(handler));
-        return this->post(path, status, std::move(lowLevelHandler));
+        return this->post(path, lowLevelHandler);
     }
 
     Router& post(std::string_view path, const std::function<LowLevelHandler>& handler);
 
-    template<typename Handler>
+    template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& del(std::string_view path, Handler&& handler)
     {
         return this->del(path, restbed::OK, std::forward<Handler>(handler));
@@ -86,7 +86,7 @@ public:
     Router& del(std::string_view path, int status, Handler&& handler)
     {
         auto lowLevelHandler = makeLowLevelHandler(status, std::forward<Handler>(handler));
-        return this->del(path, std::move(lowLevelHandler));
+        return this->del(path, lowLevelHandler);
     }
 
     Router& del(std::string_view path, const std::function<LowLevelHandler>& handler);
@@ -102,7 +102,7 @@ private:
 
 private:
     const std::string m_prefix;
-    std::shared_ptr<PathResourceMap> m_resourceStoarge;
+    std::shared_ptr<PathResourceMap> m_resourceStorage;
 };
 
 }   // namespace royalbed
