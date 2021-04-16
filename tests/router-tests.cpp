@@ -1,15 +1,18 @@
 #include <string>
-#include <string_view>
+#include <vector>
 
 #include <gtest/gtest.h>
 
-#include <royalbed/router.h>
-#include <corvusoft/restbed/service.hpp>
+#include <corvusoft/restbed/http.hpp>
+#include <corvusoft/restbed/settings.hpp>
 #include <corvusoft/restbed/status_code.hpp>
-#include <vector>
+#include <nlohmann/json.hpp>
 
-#include "helpers.h"
-#include "nlohmann/json.hpp"
+#include <royalbed/router.h>
+
+#include "helpers/resp.h"
+#include "helpers/req.h"
+#include "helpers/test-service.h"
 
 namespace {
 using namespace std::literals;
@@ -56,17 +59,13 @@ TEST(Router, addRotes)   // NOLINT
 
     EXPECT_EQ(router.resources().size(), 2);
 
-    restbed::Service srv;
-    for (auto& resource : router.resources()) {
-        srv.publish(resource);
-    }
-    start(srv);
+    const auto srv = TestService(router.resources());
 
     struct TestRec
     {
-        std::string path;
-        std::string method;
-        int responseStatus = restbed::OK;
+        const std::string path;
+        const std::string method;
+        const int responseStatus = restbed::OK;
     };
     const auto testRecs = std::vector<TestRec>{
       {"/path", "GET"},
@@ -80,13 +79,12 @@ TEST(Router, addRotes)   // NOLINT
     };
 
     for (const auto& rec : testRecs) {
-        auto req = makeRequest(rec.path, rec.method);
-        auto resp = restbed::Http::sync(req);
+        const auto req = makeReq(rec.path, rec.method);
+        const auto resp = restbed::Http::sync(req);
         EXPECT_EQ(resp->get_status_code(), rec.responseStatus);
 
         const auto respBody = fetchBody(resp);
-        const auto respData = nlohmann::json::parse(respBody);
-        EXPECT_EQ(respData, nlohmann::json(fmt::format("{} {}", rec.method, rec.path)));
+        EXPECT_EQ(respBody, nlohmann::json(fmt::format("{} {}", rec.method, rec.path)));
     }
 }
 
@@ -98,13 +96,9 @@ TEST(Router, addSubRotes)   // NOLINT
         subRouter.get("/path2", [] {});
     }
 
-    restbed::Service srv;
-    for (auto& resource : router.resources()) {
-        srv.publish(resource);
-    }
+    const auto srv = TestService(router.resources());
 
-    start(srv);
-    auto req = makeRequest("/path/path2", "GET");
-    auto resp = restbed::Http::sync(req);
+    const auto req = makeReq("/path/path2", "GET");
+    const auto resp = restbed::Http::sync(req);
     EXPECT_EQ(resp->get_status_code(), restbed::OK);
 }
