@@ -12,7 +12,7 @@ path = "tests"
 asio = { git = "git@gitlab.olimp.lan:github/standalone-asio.git", tag = "asio-1-18-1", interface = "asio/include" }
 fmt = { git  = "git@gitlab.olimp.lan:github/fmtlib.git", tag = "7.1.3" }
 gsl = { git = "git@gitlab.olimp.lan:github/gsl.git", tag = "v3.1.0", interface = "include" }
-nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git"}
+nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", branch="executors"}
 nlohmann_json = {git = "git@gitlab.olimp.lan:github/nlohmann-json.git", tag = "v3.9.1"}
 restbed = {git = "git@gitlab.olimp.lan:github/restbed.git", branch = "4.7-antey", links = ["restbed-static"]}
 spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", tag = "v1.7.0" }
