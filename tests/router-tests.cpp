@@ -20,7 +20,7 @@ using namespace royalbed;
 
 }   // namespace
 
-TEST(Router, addRotes)   // NOLINT
+TEST(Router, addRoutes)   // NOLINT
 {
     Router router;
 
@@ -88,17 +88,18 @@ TEST(Router, addRotes)   // NOLINT
     }
 }
 
-TEST(Router, addSubRotes)   // NOLINT
+TEST(Router, addSubRoutes)   // NOLINT
 {
     Router router;
     {
-        auto subRouter = router.route("/path");
-        subRouter.get("/path2", [] {});
+        Router subRouter;
+        subRouter.get("/path", [] {});
+        router.use("/subroutes", subRouter);
     }
 
     const auto srv = TestService(router.resources());
 
-    const auto req = makeReq("/path/path2", "GET");
+    const auto req = makeReq("/subroutes/path", "GET");
     const auto resp = restbed::Http::sync(req);
     EXPECT_EQ(resp->get_status_code(), restbed::OK);
 }

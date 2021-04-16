@@ -14,13 +14,7 @@ namespace royalbed {
 
 namespace {
 using namespace std::literals;
-using PathResourceMap = Router::PathResourceMap;
-
-struct GetResourceResult
-{
-    bool newResource;
-    std::shared_ptr<restbed::Resource> resource;
-};
+using PathResourceMap = std::map<std::string, std::shared_ptr<restbed::Resource>>;
 
 std::string canonical(std::string_view path)
 {
@@ -40,15 +34,16 @@ std::string join(std::string_view p1, std::string_view p2)
     return fmt::format("{}/{}", p1, p2);
 }
 
-GetResourceResult getResource(const std::string& path, PathResourceMap& resources)
+std::shared_ptr<restbed::Resource> getResource(const std::string& path, PathResourceMap& resources)
 {
     auto& resourcePtr = resources[path];
     if (resourcePtr != nullptr) {
-        return {false, resourcePtr};
+        return resourcePtr;
     }
 
     resourcePtr = std::make_shared<restbed::Resource>();
-    return {true, resourcePtr};
+    resourcePtr->set_path(path);
+    return resourcePtr;
 }
 
 bool startWith(std::string_view path, std::string_view prefix)
@@ -60,20 +55,9 @@ bool startWith(std::string_view path, std::string_view prefix)
 
 Router::Router(std::string_view prefix)
   : m_prefix(canonical(prefix))
-  , m_resourceStorage(std::make_shared<PathResourceMap>())
-{}
-
-Router::Router(std::string_view prefix, std::shared_ptr<PathResourceMap> resources)
-  : m_prefix(canonical(prefix))
-  , m_resourceStorage(std::move(resources))
 {}
 
 Router::~Router() = default;
-
-Router Router::route(std::string_view path)
-{
-    return Router(join(m_prefix, path), m_resourceStorage);
-}
 
 Router& Router::get(std::string_view path, const std::function<LowLevelHandler>& handler)
 {
@@ -95,14 +79,30 @@ Router& Router::del(std::string_view path, const std::function<LowLevelHandler>&
     return this->addHandler("DELETE", path, handler);
 }
 
+Router& Router::use(std::string_view prefix, const Router& router)
+{
+    const auto fullPrefix = canonical(join(m_prefix, prefix));
+    for (const auto& rec : router.m_handlerRecords) {
+        const auto path = canonical(join(fullPrefix, rec.path));
+        this->addHandler(rec.method, path, rec.handler);
+    }
+    return *this;
+}
+
 Router::Resources Router::resources() const
 {
-    Resources retval;
-    for (const auto& [path, resource] : *m_resourceStorage) {
-        if (startWith(path, m_prefix)) {
-            retval.push_back(resource);
-        }
+    PathResourceMap pathResourceMap;
+
+    for (const auto& rec : m_handlerRecords) {
+        const auto resource = getResource(rec.path, pathResourceMap);
+        resource->set_method_handler(rec.method, rec.handler);
     }
+
+    Resources retval;
+    for (const auto& [_, resource] : pathResourceMap) {
+        retval.emplace_back(resource);
+    }
+
     return retval;
 }
 
@@ -110,13 +110,7 @@ Router& Router::addHandler(std::string_view method, std::string_view path,
                            const std::function<LowLevelHandler>& handler)
 {
     const auto fullPath = canonical(join(m_prefix, path));
-    auto [newResource, resource] = getResource(fullPath, *m_resourceStorage);
-    if (newResource) {
-        resource->set_path(fullPath);
-    }
-
-    resource->set_method_handler(std::string(method), handler);
-
+    m_handlerRecords.push_back({std::string(method), fullPath, handler});
     return *this;
 }
 

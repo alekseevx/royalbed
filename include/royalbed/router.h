@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <list>
-#include <map>
 #include <memory>
 #include <string_view>
 #include <string>
@@ -26,7 +25,6 @@ class Router final
 {
 public:
     using Resources = std::list<std::shared_ptr<restbed::Resource>>;
-    using PathResourceMap = std::map<std::string, std::shared_ptr<restbed::Resource>>;
 
     explicit Router(std::string_view prefix = "/");
     ~Router();
@@ -90,19 +88,22 @@ public:
     }
 
     Router& del(std::string_view path, const std::function<LowLevelHandler>& handler);
-
-    Router route(std::string_view path);
+    Router& use(std::string_view prefix, const Router& router);
 
     [[nodiscard]] Resources resources() const;
 
 private:
-    Router(std::string_view prefix, std::shared_ptr<PathResourceMap> resources);
+    struct HandlerRecord final
+    {
+        std::string method;
+        std::string path;
+        std::function<LowLevelHandler> handler;
+    };
 
     Router& addHandler(std::string_view method, std::string_view path, const std::function<LowLevelHandler>& handler);
 
-private:
     const std::string m_prefix;
-    std::shared_ptr<PathResourceMap> m_resourceStorage;
+    std::list<HandlerRecord> m_handlerRecords;
 };
 
 }   // namespace royalbed
