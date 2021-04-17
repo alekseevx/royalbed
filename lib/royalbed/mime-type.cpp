@@ -22,9 +22,10 @@ std::string getFileExt(std::string_view fileName)
 std::optional<std::string_view> mimeTypeForExt(std::string_view fileExt)
 {
     static const auto mimeTypes = std::map<std::string_view, std::string_view>{
-      {".json"sv, "text/json"sv},
-      {".yml"sv, "text/yaml"sv},
-      {".js"sv, "text/javascript"sv},
+      {".json"sv, "application/json"sv},
+      {".yml"sv, "application/yaml"sv},
+      {".js"sv, "application/javascript"sv},
+      {".bin"sv, "application/octet-stream"sv},
     };
 
     const auto it = mimeTypes.find(fileExt);
