@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -21,6 +22,7 @@
 namespace royalbed {
 
 namespace {
+namespace fs = std::filesystem;
 using namespace std::literals;
 
 constexpr auto portionSize = 64 * 1024;
@@ -63,6 +65,22 @@ void sendFirstPortion(const std::shared_ptr<restbed::Session>& session, gsl::spa
                    });
 }
 
+std::optional<std::string> getContentEncodingByExtension(std::string_view filePath)
+{
+    const auto ext = fs::path(filePath).extension().string();
+    if (ext == ".gz") {
+        return "gzip";
+    }
+
+    return std::nullopt;
+}
+
+std::string removeEncoderExtension(std::string_view filePath)
+{
+    const auto encoderExtensionPos = filePath.rfind('.');
+    return std::string(filePath.substr(0, encoderExtensionPos));
+}
+
 void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc::directory_entry& entry,
                 std::string_view parentPath)
 
@@ -70,20 +88,28 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
     assert(entry.is_file());   // NOLINT
 
     const auto filePath = join({parentPath, entry.filename()});
-    const auto mimeType = mimeTypeForFileName(filePath);
+    const auto file = fs.open(filePath);
+
+    auto resourcePath = join({parentPath, entry.filename()});
+    auto headers = std::multimap<std::string, std::string>{
+      {"Content-Length", std::to_string(file.size())},
+    };
+
+    const auto contentEncoding = getContentEncodingByExtension(resourcePath);
+    if (contentEncoding != std::nullopt) {
+        headers.insert({"Content-Encoding", contentEncoding.value()});
+        resourcePath = removeEncoderExtension(resourcePath);
+    }
+
+    const auto mimeType = mimeTypeForFileName(resourcePath);
     if (mimeType == std::nullopt) {
         const auto msg = fmt::format("Unable to determine a mime type for \"{}\"", filePath);
         throw std::runtime_error(msg);
     }
+    headers.insert({"Content-Type", std::string(mimeType.value())});
 
-    const auto file = fs.open(filePath);
-    const auto resourcePath = join({parentPath, entry.filename()});
-    router.get(resourcePath, [file, mimeType](const auto& session) {
-        session->set_headers({
-          {"Content-Type", std::string(mimeType.value())},
-          {"Content-Length", std::to_string(file.size())},
-        });
-
+    router.get(resourcePath, [file, headers](const auto& session) {
+        session->set_headers(headers);
         sendFirstPortion(session, {file.begin(), file.end()});
     });
 }

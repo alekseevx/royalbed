@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>
@@ -42,6 +43,8 @@ const auto smallFileData = genRandom(smallFileSize);   // NOLINT(cert-err58-cpp)
 constexpr auto bigFileSize = 2 * 1024 * 1024 + 235;
 const auto bigFileData = genRandom(bigFileSize);   // NOLINT(cert-err58-cpp)
 
+const auto encodedFileData = std::vector<char>();
+
 cmrc::embedded_filesystem testFs()
 {
     using namespace cmrc::detail;
@@ -70,6 +73,13 @@ cmrc::embedded_filesystem testFs()
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         folder2.directory.add_file("big-file.bin", bigFileData.data(), bigFileData.data() + bigFileData.size()),
       },
+      {
+        "folder2/encoded-file.js.gz",
+        folder2.directory.add_file("encoded-file.js.gz", encodedFileData.data(),
+                                   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                                   encodedFileData.data() + encodedFileData.size()),
+      },
+
     };
 
     return cmrc::embedded_filesystem(rootIndex);
@@ -89,7 +99,7 @@ bool eq(gsl::span<const char> v1, gsl::span<const std::uint8_t> v2)
 TEST(StaticFiles, getFiles)   // NOLINT
 {
     const auto router = staticFiles(testFs());
-    EXPECT_EQ(router.resources().size(), 3);
+    EXPECT_EQ(router.resources().size(), 4);
 
     TestService srv(router.resources());
 
@@ -98,11 +108,13 @@ TEST(StaticFiles, getFiles)   // NOLINT
         const std::string path;
         const std::string etalonContentType;
         const gsl::span<const char> etalonData;
+        const std::string contentEncoding;
     };
     const auto testRecs = std::vector<TestRec>{
       {"/empty-file.json", "application/json", emptyFileData},
       {"/folder2/small-file.bin", "application/octet-stream", smallFileData},
       {"/folder2/big-file.bin", "application/octet-stream", bigFileData},
+      {"/folder2/encoded-file.js", "application/javascript", encodedFileData, "gzip"},
     };
 
     for (const auto& rec : testRecs) {
@@ -111,6 +123,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
         EXPECT_EQ(resp->get_status_code(), restbed::OK);
         EXPECT_EQ(resp->get_header("Content-Type", ""), rec.etalonContentType);
         EXPECT_EQ(resp->get_header("Content-Length", SIZE_MAX), rec.etalonData.size());
+        EXPECT_EQ(resp->get_header("Content-Encoding", ""), rec.contentEncoding);
 
         const auto body = restbed::Http::fetch(rec.etalonData.size(), resp);
         EXPECT_TRUE(eq(rec.etalonData, body));

@@ -102,7 +102,7 @@ private:
 
     Router& addHandler(std::string_view method, std::string_view path, const std::function<LowLevelHandler>& handler);
 
-    const std::string m_prefix;
+    std::string m_prefix;
     std::list<HandlerRecord> m_handlerRecords;
 };
 
