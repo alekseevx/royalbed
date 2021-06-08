@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.11)
 
+include(cmake/CMakeRC.cmake)
 include(cmake/enable_warnings.cmake)
-add_compile_options(-fsanitize=thread -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
-add_link_options(-fsanitize=thread -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
+# add_compile_options(-fsanitize=thread -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
+# add_link_options(-fsanitize=thread -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
 
 
 include(cmake/bastard_setup.cmake)
@@ -22,9 +23,15 @@ if(COVERAGE_ENABLED)
           )
 endif()
 
-include(cmake/CMakeRC.cmake)
 cmrc_add_resource_library(swaggerFiles
     NAMESPACE royalbed::swagger
+    swagger/index.html
+    # swagger-ui v3.43.0
+    swagger/ui/favicon-16x16.png
+    swagger/ui/favicon-32x32.png
+    swagger/ui/swagger-ui-bundle.js.gz
+    swagger/ui/swagger-ui.css.gz
+    swagger/ui/swagger-ui-standalone-preset.js.gz
 )
 target_compile_features(swaggerFiles PRIVATE cxx_std_17)
 target_link_libraries(${BASTARD_PACKAGE_NAME} swaggerFiles)

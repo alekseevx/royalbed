@@ -26,6 +26,9 @@ std::optional<std::string_view> mimeTypeForExt(std::string_view fileExt)
       {".yml"sv, "application/yaml"sv},
       {".js"sv, "application/javascript"sv},
       {".bin"sv, "application/octet-stream"sv},
+      {".png"sv, "image/png"sv},
+      {".jpg"sv, "image/jpeg"sv},
+      {".jpeg"sv, "image/jpeg"sv},
     };
 
     const auto it = mimeTypes.find(fileExt);
