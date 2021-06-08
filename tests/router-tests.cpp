@@ -17,7 +17,6 @@
 namespace {
 using namespace std::literals;
 using namespace royalbed;
-
 }   // namespace
 
 TEST(Router, addRoutes)   // NOLINT

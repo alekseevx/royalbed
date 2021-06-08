@@ -17,7 +17,6 @@ public:
     explicit TestService(const Resources& resources);
     ~TestService();
 
-public:
     static constexpr std::uint16_t httpPort = 5555;
 
 private:
@@ -27,7 +26,6 @@ private:
     void stopped();
     void waitForStopped();
 
-private:
     std::mutex m_mutex;
     std::condition_variable m_condvar;
     bool m_isRunning = false;

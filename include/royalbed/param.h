@@ -90,7 +90,6 @@ public:
         return m_data;
     }
 
-public:
     static const ParamProperties<T>& props()
     {
         static const auto props = makeProperties<T, Properties...>(name);

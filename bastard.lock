@@ -7,7 +7,7 @@ bastard = 0.13.1
 asio = { git = "git@gitlab.olimp.lan:github/standalone-asio.git", rev = "a4d820dd", interface = "asio/include" }
 fmt = { git = "git@gitlab.olimp.lan:github/fmtlib.git", rev = "7bdf0628" }
 gsl = { git = "git@gitlab.olimp.lan:github/gsl.git", rev = "0f6dbc9", interface = "include" }
-nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "822e5da" }
+nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "cb1b4ab" }
 nlohmann_json = { git = "git@gitlab.olimp.lan:github/nlohmann-json.git", rev = "db78ac1d" }
 restbed = { git = "git@gitlab.olimp.lan:github/restbed.git", rev = "b5cda55", links = [ "restbed-static" ] }
 spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", rev = "616caa5d" }
