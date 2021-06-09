@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include <royalbed/http-error.h>
+#include "royalbed/detail/traits.h"
 
 namespace royalbed {
 
@@ -66,9 +67,11 @@ inline constexpr bool isBody<Body<T>> = true;
 template<typename T>
 T parseBody(const restbed::Request& req)
 {
-    static_assert(std::is_constructible_v<nlohmann::json, T>, "T cannot be converted to json."
-                                                              "Please define a to_json function for it."
-                                                              "See https://github.com/nlohmann/json#basic-usage");
+    if constexpr (!canDeserializeJson<T>) {
+        static_assert(!std::is_same_v<T, T>, "T cannot be retrived from json."
+                                             "need implement: void from_json(const nlohmann::json&, T& )"
+                                             "See https://github.com/nlohmann/json#basic-usage");
+    }
 
     const auto jsonValue = parseBody<nlohmann::json>(req);
 

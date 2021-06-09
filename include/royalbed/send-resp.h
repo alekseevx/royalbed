@@ -7,6 +7,7 @@
 #include <corvusoft/restbed/session.hpp>
 #include <corvusoft/restbed/status_code.hpp>
 #include <nlohmann/json.hpp>
+#include "royalbed/detail/traits.h"
 
 namespace royalbed {
 
@@ -19,10 +20,11 @@ void sendJson(restbed::Session& session, int httpStatus, const nlohmann::json& v
 template<typename Value>
 void sendJson(restbed::Session& session, int httpStatus, const Value& value)
 {
-    static_assert(std::is_constructible_v<nlohmann::json, Value>, "Value cannot be converted to json."
-                                                                  "Please define a to_json function for it."
-                                                                  "See https://github.com/nlohmann/json#basic-usage");
-
+    if constexpr (!canSerializeJson<Value>) {
+        static_assert(!std::is_same_v<Value, Value>, "Value cannot be converted to json."
+                                                     "Please define: void to_json(nlohmann::json&, const Value& )"
+                                                     "See https://github.com/nlohmann/json#basic-usage");
+    }
     sendJson(session, httpStatus, nlohmann::json(value));
 }
 

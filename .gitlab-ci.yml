@@ -11,6 +11,7 @@ build-job:
     - cmake --build .
   artifacts:
     paths:
+      - build
       - build/tests
 
 test-job:
@@ -18,7 +19,8 @@ test-job:
   image: ubuntu:20.04-build
   script:
     - cd build
-    - cmake --build . --target coverage
+    - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE_ENABLED=ON
+    - cmake --build . --target royal_bed_coverage
     - cd ..
     - gcovr --xml-pretty --print-summary --exclude-unreachable-branches -e .deps -e tests -o coverage.xml --root .
 
@@ -26,6 +28,6 @@ test-job:
   artifacts:
     name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
     paths:
-      - build/coverage
+      - build/royal_bed_coverage
     reports:
       cobertura: coverage.xml
