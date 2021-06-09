@@ -29,6 +29,7 @@ std::optional<std::string_view> mimeTypeForExt(std::string_view fileExt)
       {".png"sv, "image/png"sv},
       {".jpg"sv, "image/jpeg"sv},
       {".jpeg"sv, "image/jpeg"sv},
+      {".html"sv, "text/html"sv},
     };
 
     const auto it = mimeTypes.find(fileExt);
