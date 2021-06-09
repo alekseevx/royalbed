@@ -86,7 +86,7 @@ TEST(Handler, ParamsRequestBodyResponce)   // NOLINT
         EXPECT_EQ(status.get(), "active");
         EXPECT_EQ(body.get(), "data");
 
-        return "responseData";
+        return "responseData"s;
     });
     const auto srv = makeTestSrvFor("/test/{id: .*}", "GET", handler);
 

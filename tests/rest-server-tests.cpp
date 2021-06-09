@@ -23,7 +23,7 @@ TEST(RestServer, Create)   // NOLINT
 {
     auto router = Router();
     router.get("/test", [] {
-        return "Test";
+        return "Test"s;
     });
 
     router.put("/test", [](const Body<std::string>& body) {

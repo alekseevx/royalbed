@@ -11,6 +11,7 @@
 
 #include <nhope/async/ao-context.h>
 #include <nhope/async/future.h>
+#include <nhope/utils/type.h>
 
 #include <royalbed/body.h>
 #include <royalbed/param.h>
@@ -42,37 +43,64 @@ inline constexpr bool isRequstHandlerArg = isParam<T> || isBody<T>;
 template<typename Handler>
 inline constexpr bool isLowLevelHandler = std::is_invocable_v<Handler, std::shared_ptr<restbed::Session>>;
 
-template<typename... Args>
-constexpr void checkRequstHandlerArgTypes()
+template<typename Fn, std::size_t... I>
+constexpr bool checkFunctionArgs(std::index_sequence<I...> /*unused*/)
 {
-    static_assert((isRequstHandlerArg<std::decay_t<Args>> && ...), "RequestHandler argument must be one of\n"
-                                                                   "\tParam <royalbed/param.h>)"
-                                                                   "\tBody <royalbed/body.h>");
+    using namespace nhope;
+    using FnProps = FunctionProps<decltype(std::function(std::declval<Fn>()))>;
+    return ((isRequstHandlerArg<std::decay_t<typename FnProps::template ArgumentType<I>>>)&&...);
 }
 
 template<typename R>
-constexpr void checkRequstHandlerResult()
+constexpr void checkRequestHandlerResult()
 {
-    static_assert(std::is_void_v<R> || std::is_constructible_v<nlohmann::json, R>,
-                  "The handler result cannot be converted to json."
-                  "Please define a to_json function for it."
-                  "See https://github.com/nlohmann/json");
+    static_assert(std::is_void_v<R> || canDeserializeJson<R>, "The handler result cannot be converted to json."
+                                                              "Please define a to_json function for it."
+                                                              "See https://github.com/nlohmann/json");
 }
 
-template<typename R, typename... Args>
-std::function<LowLevelHandler> makeLowLevelHandler(int status, std::function<RequestHandler<R, Args...>> handler)
+template<typename Handler, std::size_t... IArg>
+auto callPrivateHandler(restbed::Session& session, Handler&& handler, std::index_sequence<IArg...> /*unused*/)
 {
-    checkRequstHandlerResult<R>();
-    checkRequstHandlerArgTypes<Args...>();
+    using namespace nhope;
+    using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    using FnRet = typename FnProps::ReturnType;
+    if constexpr (std::is_void_v<FnRet>) {
+        handler(std::decay_t<typename FnProps::template ArgumentType<IArg>>(session)...);
+        return;
+    }
+    return handler(std::decay_t<typename FnProps::template ArgumentType<IArg>>(session)...);
+}
 
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    return [status, handler = std::move(handler)](std::shared_ptr<restbed::Session> session) {
+template<typename Handler>
+constexpr void checkRequestHandler()
+{
+    using namespace nhope;
+    using namespace std::literals;
+    using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    static_assert(checkFunctionArgs<Handler>(std::make_index_sequence<FnProps::argumentCount>{}),
+                  "RequestHandler argument must be one of\n"
+                  "\tParam <royalbed/param.h>)"
+                  "\tBody <royalbed/body.h>");
+    checkRequestHandlerResult<typename FnProps::ReturnType>();
+}
+
+template<typename Handler>
+std::function<LowLevelHandler> makeLowLevelHandler(int status, Handler&& handler)
+{
+    using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    using R = typename FnProps::ReturnType;
+    checkRequestHandler<Handler>();
+
+    return [status, handler = std::move(handler)](
+             // NOLINTNEXTLINE(performance-unnecessary-value-param)
+             std::shared_ptr<restbed::Session> session) {
         try {
             if constexpr (std::is_void_v<R>) {
-                handler(std::decay_t<Args>(*session)...);
+                callPrivateHandler(*session, handler, std::make_index_sequence<FnProps::argumentCount>{});
                 session->close(status);
             } else {
-                R result = handler(std::decay_t<Args>(*session)...);
+                R result = callPrivateHandler(*session, handler, std::make_index_sequence<FnProps::argumentCount>{});
                 sendJson(*session, status, result);
             }
         } catch (...) {
@@ -80,18 +108,6 @@ std::function<LowLevelHandler> makeLowLevelHandler(int status, std::function<Req
             sendError(*session, std::move(exPtr));
         }
     };
-}
-
-// template<typename R, typename... Args>
-// std::function<LowLevelHandler> makeLowLevelHandler(std::function<nhope::Future<R>(Args&&...)>&& handler)
-// {
-//     checkRequstHandlerArgTypes<Args...>();
-// }
-
-template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
-std::function<LowLevelHandler> makeLowLevelHandler(int status, Handler&& handler)
-{
-    return makeLowLevelHandler(status, std::function(handler));
 }
 
 }   // namespace royalbed

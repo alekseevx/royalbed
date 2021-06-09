@@ -17,7 +17,7 @@ if(COVERAGE_ENABLED)
     include(cmake/CodeCoverage.cmake)
     append_coverage_compiler_flags()
     setup_target_for_coverage_gcovr_html(
-          NAME coverage
+          NAME royal_bed_coverage
           EXECUTABLE ./tests
           EXCLUDE ".deps" "tests"
           )

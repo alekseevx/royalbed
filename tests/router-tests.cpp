@@ -26,34 +26,34 @@ TEST(Router, addRoutes)   // NOLINT
     router
       .get("path",
            [] {
-               return "GET /path";
+               return "GET /path"s;
            })
       .post("/path",
             [] {
-                return "POST /path";
+                return "POST /path"s;
             })
       .put("/path",
            [] {
-               return "PUT /path";
+               return "PUT /path"s;
            })
       .del("/path",
            [] {
-               return "DELETE /path";
+               return "DELETE /path"s;
            })
       .get("/path2", restbed::RESET_CONTENT,
            [] {
-               return "GET /path2";
+               return "GET /path2"s;
            })
       .post("/path2", restbed::RESET_CONTENT,
             [] {
-                return "POST /path2";
+                return "POST /path2"s;
             })
       .put("/path2", restbed::RESET_CONTENT,
            [] {
-               return "PUT /path2";
+               return "PUT /path2"s;
            })
       .del("/path2", restbed::RESET_CONTENT, [] {
-          return "DELETE /path2";
+          return "DELETE /path2"s;
       });
 
     EXPECT_EQ(router.resources().size(), 2);
