@@ -1,5 +1,6 @@
 #pragma once
 
+#include "royalbed/detail/traits.h"
 #include <exception>
 #include <functional>
 #include <memory>
@@ -54,9 +55,9 @@ constexpr bool checkFunctionArgs(std::index_sequence<I...> /*unused*/)
 template<typename R>
 constexpr void checkRequestHandlerResult()
 {
-    static_assert(std::is_void_v<R> || detail::canDeserializeJson<R>, "The handler result cannot be converted to json."
-                                                                      "Please define a to_json function for it."
-                                                                      "See https://github.com/nlohmann/json");
+    static_assert(std::is_void_v<R> || detail::canSerializeJson<R>, "The handler result cannot be converted to json."
+                                                                    "Please define a to_json function for it."
+                                                                    "See https://github.com/nlohmann/json");
 }
 
 template<typename Handler, std::size_t... IArg>
