@@ -14,7 +14,6 @@ namespace royalbed {
 void sendText(restbed::Session& session, std::string_view text);
 void sendText(restbed::Session& session, int httpStatus, std::string_view text);
 
-void sendJson(restbed::Session& session, const nlohmann::json& value);
 void sendJson(restbed::Session& session, int httpStatus, const nlohmann::json& value);
 
 template<typename Value>

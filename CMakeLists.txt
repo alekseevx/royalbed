@@ -19,7 +19,7 @@ if(COVERAGE_ENABLED)
     setup_target_for_coverage_gcovr_html(
           NAME royal_bed_coverage
           EXECUTABLE ./tests
-          EXCLUDE ".deps" "tests"
+          EXCLUDE ".deps" "tests" "build"
           )
 endif()
 

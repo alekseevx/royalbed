@@ -20,11 +20,6 @@ void sendText(restbed::Session& session, int httpStatus, std::string_view text)
                   });
 }
 
-void sendJson(restbed::Session& session, const nlohmann::json& value)
-{
-    sendJson(session, restbed::OK, value);
-}
-
 void sendJson(restbed::Session& session, int httpStatus, const nlohmann::json& value)
 {
     const auto strValue = value.dump();

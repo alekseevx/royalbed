@@ -24,16 +24,20 @@ using namespace std::literals;
 using namespace royalbed;
 using namespace nlohmann;
 
+std::shared_ptr<restbed::Resource> makeResource(const std::string& path, const std::string& method,
+                                                const std::function<LowLevelHandler>& handler)
+{
+    auto resource = std::make_shared<restbed::Resource>();
+    resource->set_path(path);
+    resource->set_method_handler(method, handler);
+    return resource;
+}
+
 std::unique_ptr<TestService> makeTestSrvFor(const std::string& path, const std::string& method,
                                             const std::function<LowLevelHandler>& handler)
 {
     using Resources = TestService::Resources;
-
-    const auto resource = std::make_shared<restbed::Resource>();
-    resource->set_path(path);
-    resource->set_method_handler(method, handler);
-
-    return std::make_unique<TestService>(Resources{resource});
+    return std::make_unique<TestService>(Resources{makeResource(path, method, handler)});
 }
 
 }   // namespace
@@ -118,9 +122,33 @@ TEST(Handler, Exception)   // NOLINT
     const auto handler = makeLowLevelHandler(restbed::OK, [] {
         throw HttpError(restbed::NOT_IMPLEMENTED, "Not implemented");
     });
-    const auto srv = makeTestSrvFor("/test", "GET", handler);
+    const auto badHandler = makeLowLevelHandler(restbed::OK, [] {
+        throw std::runtime_error("something bad");
+    });
 
-    const auto req = makeReq("/test", "GET");
+    const auto veryBadHandler = makeLowLevelHandler(restbed::OK, [] {
+        throw 1;
+    });
+
+    const auto path = "/test"s;
+    const auto badPath = "/bad"s;
+    const auto veryBadPath = "/verybad"s;
+
+    TestService::Resources resources;
+    resources.emplace_back(makeResource(path, "GET", handler));
+    resources.emplace_back(makeResource(badPath, "GET", badHandler));
+    resources.emplace_back(makeResource(veryBadPath, "GET", veryBadHandler));
+    const auto srv = std::make_unique<TestService>(resources);
+
+    const auto req = makeReq(path, "GET");
     const auto resp = restbed::Http::sync(req);
     EXPECT_EQ(resp->get_status_code(), restbed::NOT_IMPLEMENTED);
+
+    const auto req2 = makeReq(badPath, "GET");
+    const auto resp2 = restbed::Http::sync(req2);
+    EXPECT_EQ(resp2->get_status_code(), restbed::INTERNAL_SERVER_ERROR);
+
+    const auto req3 = makeReq(veryBadPath, "GET");
+    const auto resp3 = restbed::Http::sync(req3);
+    EXPECT_EQ(resp3->get_status_code(), restbed::INTERNAL_SERVER_ERROR);
 }

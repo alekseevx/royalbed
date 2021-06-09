@@ -22,7 +22,7 @@ test-job:
     - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE_ENABLED=ON
     - cmake --build . --target royal_bed_coverage
     - cd ..
-    - gcovr --xml-pretty --print-summary --exclude-unreachable-branches -e .deps -e tests -o coverage.xml --root .
+    - gcovr --xml-pretty --print-summary --exclude-unreachable-branches -e .deps -e tests -e build -o coverage.xml --root .
 
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
