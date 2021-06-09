@@ -172,7 +172,7 @@ std::shared_ptr<restbed::Settings> RestServer::makeRestbedSettings() const
     settings->set_keep_alive(m_keepAlive);
     settings->set_bind_address(m_bindAddress);
     settings->set_port(m_port);
-    settings->set_bind_address(m_bindAddress);
+    settings->set_reuse_address(m_reuseAddress);
     settings->set_worker_limit(m_threadCount);
     return settings;
 }
