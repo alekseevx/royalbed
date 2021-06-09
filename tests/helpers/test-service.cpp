@@ -4,7 +4,7 @@
 #include <mutex>
 #include <thread>
 
-#include <royalbed/rules/fetch-body-rule.h>
+#include <royalbed/detail/fetch-body-rule.h>
 #include <corvusoft/restbed/settings.hpp>
 
 #include "test-service.h"
@@ -13,7 +13,7 @@ using namespace std::literals;
 
 TestService::TestService(const Resources& resources)
 {
-    m_service.add_rule(std::make_shared<royalbed::FetchBodyRule>("application/json"));
+    m_service.add_rule(std::make_shared<royalbed::detail::FetchBodyRule>("application/json"));
 
     for (const auto& resource : resources) {
         m_service.publish(resource);

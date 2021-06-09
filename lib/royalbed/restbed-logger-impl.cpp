@@ -6,9 +6,9 @@
 #include <spdlog/logger.h>
 #include <corvusoft/restbed/logger.hpp>
 
-#include <royalbed/restbed-logger-impl.h>
+#include <royalbed/detail/restbed-logger-impl.h>
 
-namespace royalbed {
+namespace royalbed::detail {
 
 namespace {
 
@@ -86,4 +86,4 @@ void RestbedLoggerImpl::log_if(bool expression, const Level level, const char* f
     va_end(args);                           // NOLINT
 }
 
-}   // namespace royalbed
+}   // namespace royalbed::detail

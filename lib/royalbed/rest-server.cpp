@@ -11,9 +11,9 @@
 
 #include <nhope/utils/scope-exit.h>
 
+#include <royalbed/detail/fetch-body-rule.h>
+#include <royalbed/detail/restbed-logger-impl.h>
 #include <royalbed/rest-server.h>
-#include <royalbed/rules/fetch-body-rule.h>
-#include <royalbed/restbed-logger-impl.h>
 #include <royalbed/router.h>
 
 namespace royalbed {
@@ -182,11 +182,11 @@ std::shared_ptr<restbed::Settings> RestServer::makeRestbedSettings() const
     auto engine = std::make_unique<restbed::Service>();
 
     if (m_logger != nullptr) {
-        const auto logger = std::make_shared<RestbedLoggerImpl>(m_logger);
+        const auto logger = std::make_shared<detail::RestbedLoggerImpl>(m_logger);
         engine->set_logger(logger);
     }
 
-    engine->add_rule(std::make_shared<FetchBodyRule>("application/json"));
+    engine->add_rule(std::make_shared<detail::FetchBodyRule>("application/json"));
 
     for (const auto& resource : m_router.resources()) {
         engine->publish(resource);

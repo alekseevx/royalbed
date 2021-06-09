@@ -5,7 +5,7 @@
 #include <spdlog/logger.h>
 #include <corvusoft/restbed/logger.hpp>
 
-namespace royalbed {
+namespace royalbed::detail {
 
 class RestbedLoggerImpl final : public restbed::Logger
 {
@@ -22,4 +22,4 @@ private:
     std::shared_ptr<spdlog::logger> m_logger;
 };
 
-}   // namespace royalbed
+}   // namespace royalbed::detail

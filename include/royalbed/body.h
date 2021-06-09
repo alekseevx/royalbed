@@ -67,7 +67,7 @@ inline constexpr bool isBody<Body<T>> = true;
 template<typename T>
 T parseBody(const restbed::Request& req)
 {
-    if constexpr (!canDeserializeJson<T>) {
+    if constexpr (!detail::canDeserializeJson<T>) {
         static_assert(!std::is_same_v<T, T>, "T cannot be retrived from json."
                                              "need implement: void from_json(const nlohmann::json&, T& )"
                                              "See https://github.com/nlohmann/json#basic-usage");

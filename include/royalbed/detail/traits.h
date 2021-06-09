@@ -6,7 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace royalbed {
+namespace royalbed::detail {
 
 template<typename T>
 inline constexpr bool canDeserializeJson = nlohmann::detail::has_from_json<nlohmann::json, T>::value;
@@ -17,4 +17,4 @@ inline constexpr bool canDeserializeJson<void> = false;
 template<typename T>
 inline constexpr bool canSerializeJson = nlohmann::detail::has_to_json<nlohmann::json, T>::value;
 
-}   // namespace royalbed
+}   // namespace royalbed::detail

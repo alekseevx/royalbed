@@ -20,11 +20,10 @@ void sendJson(restbed::Session& session, int httpStatus, const nlohmann::json& v
 template<typename Value>
 void sendJson(restbed::Session& session, int httpStatus, const Value& value)
 {
-    if constexpr (!canSerializeJson<Value>) {
-        static_assert(!std::is_same_v<Value, Value>, "Value cannot be converted to json."
-                                                     "Please define: void to_json(nlohmann::json&, const Value& )"
-                                                     "See https://github.com/nlohmann/json#basic-usage");
-    }
+    static_assert(detail::canSerializeJson<Value>, "Value cannot be converted to json."
+                                                   "Please define: void to_json(nlohmann::json&, const Value& )"
+                                                   "See https://github.com/nlohmann/json#basic-usage");
+
     sendJson(session, httpStatus, nlohmann::json(value));
 }
 

@@ -2,9 +2,9 @@
 #include <corvusoft/restbed/session.hpp>
 #include <corvusoft/restbed/status_code.hpp>
 
-#include <royalbed/rules/fetch-body-rule.h>
+#include <royalbed/detail/fetch-body-rule.h>
 
-namespace royalbed {
+namespace royalbed::detail {
 
 FetchBodyRule::FetchBodyRule(std::string_view contentType, std::size_t sizeLimit)
   : m_contentType(contentType)
@@ -41,4 +41,4 @@ void FetchBodyRule::action(std::shared_ptr<restbed::Session> session,
     });
 }
 
-}   // namespace royalbed
+}   // namespace royalbed::detail

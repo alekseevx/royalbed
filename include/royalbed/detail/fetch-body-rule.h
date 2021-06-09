@@ -7,7 +7,7 @@
 #include <corvusoft/restbed/rule.hpp>
 #include <corvusoft/restbed/session.hpp>
 
-namespace royalbed {
+namespace royalbed::detail {
 
 class FetchBodyRule final : public restbed::Rule
 {
@@ -26,4 +26,4 @@ private:
     const std::size_t m_sizeLimit;
 };
 
-}   // namespace royalbed
+}   // namespace royalbed::detail
