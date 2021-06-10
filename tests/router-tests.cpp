@@ -89,7 +89,7 @@ TEST(Router, addRoutes)   // NOLINT
 
 TEST(Router, addSubRoutes)   // NOLINT
 {
-    Router router;
+    Router router("/prefix");
     {
         Router subRouter;
         subRouter.get("/path", [] {});
@@ -98,7 +98,7 @@ TEST(Router, addSubRoutes)   // NOLINT
 
     const auto srv = TestService(router.resources());
 
-    const auto req = makeReq("/subroutes/path", "GET");
+    const auto req = makeReq("/prefix/subroutes/path", "GET");
     const auto resp = restbed::Http::sync(req);
     EXPECT_EQ(resp->get_status_code(), restbed::OK);
 }
