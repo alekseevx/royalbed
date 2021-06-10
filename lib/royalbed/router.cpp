@@ -81,9 +81,8 @@ Router& Router::del(std::string_view path, const std::function<LowLevelHandler>&
 
 Router& Router::use(std::string_view prefix, const Router& router)
 {
-    const auto fullPrefix = canonical(join(m_prefix, prefix));
     for (const auto& rec : router.m_handlerRecords) {
-        const auto path = canonical(join(fullPrefix, rec.path));
+        const auto path = canonical(join(prefix, rec.path));
         this->addHandler(rec.method, path, rec.handler);
     }
     return *this;
