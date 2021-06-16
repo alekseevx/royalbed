@@ -10,9 +10,9 @@ include(cmake/bastard_setup.cmake)
 bastard_setup()
 project(${BASTARD_PACKAGE_NAME})
 
-option(COVERAGE_ENABLED "enable coverage compiler flags" OFF)
+option(ROYALBED_COVERAGE_ENABLED "enable coverage compiler flags" OFF)
 
-if(COVERAGE_ENABLED)    
+if(ROYALBED_COVERAGE_ENABLED)    
     message(STATUS "royalbed enabling coverage")
     include(cmake/CodeCoverage.cmake)
     append_coverage_compiler_flags()
