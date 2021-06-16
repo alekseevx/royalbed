@@ -32,6 +32,7 @@ spdlog::level::level_enum toSpdLevel(restbed::Logger::Level level)
 
     case restbed::Logger::Level::SECURITY:
         return spdlog::level::critical;
+
     default:
         return spdlog::level::off;
     };

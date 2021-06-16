@@ -1,3 +1,4 @@
+#include <ios>
 #include <stdexcept>
 #include <string>
 
@@ -41,13 +42,27 @@ int fromString(const std::string& str)
 template<>
 unsigned int fromString(const std::string& str)
 {
-    const auto val = fromString<unsigned long>(str);
-    if (val > std::numeric_limits<int>::max()) {
-        const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
-        throw std::invalid_argument(message);
-    }
+    if constexpr (sizeof(int) == sizeof(long)) {
+        return static_cast<unsigned int>(fromString<unsigned long>(str));
+    } else {
+        // sizeof(int) < sizeof(long)
 
-    return static_cast<unsigned int>(val);
+        const auto val = fromString<long>(str);
+
+        if (val > std::numeric_limits<unsigned int>::max()) {
+            const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
+            throw std::out_of_range(message);
+        }
+
+        // a signed number is converted to a unsigned. Need to make sure
+        // that there will be no overflow (by analogy with stoul)
+        if (val < std::numeric_limits<int>::min()) {
+            const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
+            throw std::out_of_range(message);
+        }
+
+        return static_cast<unsigned int>(val);
+    }
 }
 
 template<>
