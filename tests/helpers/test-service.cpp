@@ -11,9 +11,11 @@
 
 using namespace std::literals;
 
-TestService::TestService(const Resources& resources)
+TestService::TestService(const Resources& resources, const Rules& rules)
 {
-    m_service.add_rule(std::make_shared<royalbed::detail::FetchBodyRule>("application/json"));
+    for (const auto& rule : rules) {
+        m_service.add_rule(rule);
+    }
 
     for (const auto& resource : resources) {
         m_service.publish(resource);
