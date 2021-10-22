@@ -1,17 +1,17 @@
 [package]
 name = royalbed
-cmake = 3.21.1
-bastard = 0.13.1
+cmake = 3.21.3
+bastard = 0.16.0
 
 [dependencies]
 asio = { git = "git@gitlab.olimp.lan:github/standalone-asio.git", rev = "a4d820dd", interface = "asio/include" }
 fmt = { git = "git@gitlab.olimp.lan:github/fmtlib.git", rev = "d141cdbe" }
 gsl = { git = "git@gitlab.olimp.lan:github/gsl.git", rev = "0f6dbc9", interface = "include" }
-nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "a205757" }
+nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "07a1a5b" }
 nlohmann_json = { git = "git@gitlab.olimp.lan:github/nlohmann-json.git", rev = "7194245a" }
 restbed = { git = "git@gitlab.olimp.lan:github/restbed.git", rev = "b5cda55", links = [ "restbed-static" ] }
 spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", rev = "eb322062" }
 
 [dev-dependencies]
-gtest = { git = "git@gitlab.olimp.lan:google/googletest.git", rev = "8d51ffdf" }
+gtest = { git = "git@gitlab.olimp.lan:google/googletest.git", rev = "40dfd4b7" }
 
