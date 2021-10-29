@@ -10,14 +10,13 @@
 
 #include <corvusoft/restbed/byte.hpp>
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 #include <fmt/format.h>
 #include <gsl/span>
 
-#include <royalbed/mime-type.h>
-#include <royalbed/router.h>
-#include <royalbed/static-files.h>
+#include "royalbed/http-status.h"
+#include "royalbed/mime-type.h"
+#include "royalbed/router.h"
+#include "royalbed/static-files.h"
 
 namespace royalbed {
 
@@ -53,13 +52,13 @@ void sendNextPortion(const std::shared_ptr<restbed::Session>& session, gsl::span
 void sendFirstPortion(const std::shared_ptr<restbed::Session>& session, gsl::span<const char> data)
 {
     if (data.empty()) {
-        session->close(restbed::OK);
+        session->close(HttpStatus::Ok);
         return;
     }
 
     const auto firstPortionSize = std::min<std::size_t>(portionSize, data.size());
     const auto firstPortion = data.first(firstPortionSize);
-    session->yield(restbed::OK, restbed::Bytes{firstPortion.begin(), firstPortion.end()},
+    session->yield(HttpStatus::Ok, restbed::Bytes{firstPortion.begin(), firstPortion.end()},
                    [remains = data.subspan(firstPortionSize)](const auto& session) {
                        sendNextPortion(session, remains);
                    });

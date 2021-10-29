@@ -1,14 +1,14 @@
 #include <string>
 
-#include <corvusoft/restbed/status_code.hpp>
-#include <royalbed/http-error.h>
-#include <royalbed/send-resp.h>
+#include "royalbed/http-error.h"
+#include "royalbed/http-status.h"
+#include "royalbed/send-resp.h"
 
 namespace royalbed {
 
 void sendText(restbed::Session& session, std::string_view text)
 {
-    sendText(session, restbed::OK, text);
+    sendText(session, HttpStatus::Ok, text);
 }
 
 void sendText(restbed::Session& session, int httpStatus, std::string_view text)
@@ -37,9 +37,9 @@ void sendError(restbed::Session& session, std::exception_ptr exPtr)
     } catch (const HttpError& ex) {
         sendText(session, ex.httpStatus(), ex.what());
     } catch (const std::exception& ex) {
-        sendText(session, restbed::INTERNAL_SERVER_ERROR, ex.what());
+        sendText(session, HttpStatus::InternalServerError, ex.what());
     } catch (...) {
-        sendText(session, restbed::INTERNAL_SERVER_ERROR, "An unknown exception was caught");
+        sendText(session, HttpStatus::InternalServerError, "An unknown exception was caught");
     }
 }
 

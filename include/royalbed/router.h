@@ -10,14 +10,14 @@
 
 #include <corvusoft/restbed/resource.hpp>
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 
 #include <nhope/async/ao-context.h>
 #include <nhope/async/future.h>
 
-#include <royalbed/body.h>
-#include <royalbed/param.h>
-#include <royalbed/handler.h>
+#include "royalbed/body.h"
+#include "royalbed/http-status.h"
+#include "royalbed/param.h"
+#include "royalbed/handler.h"
 
 namespace royalbed {
 
@@ -41,13 +41,13 @@ public:
     template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& get(std::string_view path, Handler&& handler)
     {
-        return this->get(path, restbed::OK, std::forward<Handler>(handler));
+        return this->get(path, HttpStatus::Ok, std::forward<Handler>(handler));
     }
 
     template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& put(std::string_view path, Handler&& handler)
     {
-        return this->put(path, restbed::OK, std::forward<Handler>(handler));
+        return this->put(path, HttpStatus::Ok, std::forward<Handler>(handler));
     }
 
     template<typename Handler>
@@ -62,7 +62,7 @@ public:
     template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& post(std::string_view path, Handler&& handler)
     {
-        return this->post(path, restbed::CREATED, std::forward<Handler>(handler));
+        return this->post(path, HttpStatus::Created, std::forward<Handler>(handler));
     }
 
     template<typename Handler>
@@ -77,7 +77,7 @@ public:
     template<typename Handler, typename = std::enable_if_t<!isLowLevelHandler<Handler>>>
     Router& del(std::string_view path, Handler&& handler)
     {
-        return this->del(path, restbed::OK, std::forward<Handler>(handler));
+        return this->del(path, HttpStatus::Ok, std::forward<Handler>(handler));
     }
 
     template<typename Handler>

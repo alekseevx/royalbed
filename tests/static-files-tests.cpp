@@ -18,6 +18,7 @@
 #include "helpers/resp.h"
 #include "helpers/req.h"
 #include "helpers/test-service.h"
+#include "royalbed/http-status.h"
 
 namespace {
 using namespace std::literals;
@@ -120,7 +121,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
     for (const auto& rec : testRecs) {
         const auto req = makeReq(rec.path, "GET");
         const auto resp = restbed::Http::sync(req);
-        EXPECT_EQ(resp->get_status_code(), restbed::OK);
+        EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
         EXPECT_EQ(resp->get_header("Content-Type", ""), rec.etalonContentType);
         EXPECT_EQ(resp->get_header("Content-Length", SIZE_MAX), rec.etalonData.size());
         EXPECT_EQ(resp->get_header("Content-Encoding", ""), rec.contentEncoding);

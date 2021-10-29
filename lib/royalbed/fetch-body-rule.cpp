@@ -1,8 +1,8 @@
 #include <corvusoft/restbed/request.hpp>
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 
-#include <royalbed/detail/fetch-body-rule.h>
+#include "royalbed/detail/fetch-body-rule.h"
+#include "royalbed/http-status.h"
 
 namespace royalbed::detail {
 
@@ -26,13 +26,13 @@ void FetchBodyRule::action(std::shared_ptr<restbed::Session> session,
     const auto req = session->get_request();
 
     if (!req->has_header("Content-Length")) {
-        session->close(restbed::LENGTH_REQUIRED);
+        session->close(HttpStatus::LengthRequired);
         return;
     }
 
     const auto contentLength = req->get_header("Content-Length", std::size_t(0));
     if (contentLength > m_sizeLimit) {
-        session->close(restbed::REQUEST_ENTITY_TOO_LARGE);
+        session->close(HttpStatus::RequestEntityTooLarge);
         return;
     }
 

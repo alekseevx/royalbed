@@ -5,10 +5,10 @@
 
 #include <corvusoft/restbed/http.hpp>
 #include <corvusoft/restbed/settings.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 #include <nlohmann/json.hpp>
 
-#include <royalbed/router.h>
+#include "royalbed/http-status.h"
+#include "royalbed/router.h"
 
 #include "helpers/resp.h"
 #include "helpers/req.h"
@@ -40,19 +40,19 @@ TEST(Router, addRoutes)   // NOLINT
            [] {
                return "DELETE /path"s;
            })
-      .get("/path2", restbed::RESET_CONTENT,
+      .get("/path2", HttpStatus::ResetContent,
            [] {
                return "GET /path2"s;
            })
-      .post("/path2", restbed::RESET_CONTENT,
+      .post("/path2", HttpStatus::ResetContent,
             [] {
                 return "POST /path2"s;
             })
-      .put("/path2", restbed::RESET_CONTENT,
+      .put("/path2", HttpStatus::ResetContent,
            [] {
                return "PUT /path2"s;
            })
-      .del("/path2", restbed::RESET_CONTENT, [] {
+      .del("/path2", HttpStatus::ResetContent, [] {
           return "DELETE /path2"s;
       });
 
@@ -64,17 +64,17 @@ TEST(Router, addRoutes)   // NOLINT
     {
         const std::string path;
         const std::string method;
-        const int responseStatus = restbed::OK;
+        const int responseStatus = HttpStatus::Ok;
     };
     const auto testRecs = std::vector<TestRec>{
       {"/path", "GET"},
-      {"/path", "POST", restbed::CREATED},   // Default status for POST is 201 (restbed::CREATED)
+      {"/path", "POST", HttpStatus::Created},   // Default status for POST is 201 (HttpStatus::Created)
       {"/path", "PUT"},
       {"/path", "DELETE"},
-      {"/path2", "GET", restbed::RESET_CONTENT},
-      {"/path2", "POST", restbed::RESET_CONTENT},
-      {"/path2", "PUT", restbed::RESET_CONTENT},
-      {"/path2", "DELETE", restbed::RESET_CONTENT},
+      {"/path2", "GET", HttpStatus::ResetContent},
+      {"/path2", "POST", HttpStatus::ResetContent},
+      {"/path2", "PUT", HttpStatus::ResetContent},
+      {"/path2", "DELETE", HttpStatus::ResetContent},
     };
 
     for (const auto& rec : testRecs) {
@@ -100,5 +100,5 @@ TEST(Router, addSubRoutes)   // NOLINT
 
     const auto req = makeReq("/prefix/subroutes/path", "GET");
     const auto resp = restbed::Http::sync(req);
-    EXPECT_EQ(resp->get_status_code(), restbed::OK);
+    EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
 }

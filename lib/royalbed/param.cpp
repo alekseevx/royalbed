@@ -1,3 +1,4 @@
+#include "royalbed/http-status.h"
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -44,7 +45,7 @@ std::optional<std::string> getParam(const restbed::Request& req, const std::stri
 
     if (required) {
         const auto message = fmt::format("Required parameter '{}' not fount", name);
-        throw HttpError(restbed::BAD_REQUEST, message);
+        throw HttpError(HttpStatus::BadRequest, message);
     }
 
     return std::nullopt;

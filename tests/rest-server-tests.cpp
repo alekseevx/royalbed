@@ -7,12 +7,12 @@
 
 #include <corvusoft/restbed/http.hpp>
 #include <corvusoft/restbed/settings.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 
 #include "helpers/resp.h"
 #include "helpers/req.h"
 #include "helpers/test-service.h"
 #include "royalbed/body.h"
+#include "royalbed/http-status.h"
 
 namespace {
 using namespace std::literals;
@@ -49,7 +49,7 @@ TEST(RestServer, Create)   // NOLINT
     {
         const auto req = makeReq("/test", "GET");
         const auto resp = restbed::Http::sync(req);
-        EXPECT_EQ(resp->get_status_code(), restbed::OK);
+        EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
         const auto respBody = fetchBody(resp);
         EXPECT_EQ(respBody, nlohmann::json("Test"));
     }
@@ -57,7 +57,7 @@ TEST(RestServer, Create)   // NOLINT
     {
         const auto req = makeReq("/test", "PUT", nlohmann::json("TestData"));
         const auto resp = restbed::Http::sync(req);
-        EXPECT_EQ(resp->get_status_code(), restbed::OK);
+        EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
     }
 
     srv.stop();

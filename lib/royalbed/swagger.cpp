@@ -1,11 +1,11 @@
 #include <string>
 
 #include <cmrc/cmrc.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 
-#include <royalbed/mime-type.h>
-#include <royalbed/swagger.h>
-#include <royalbed/static-files.h>
+#include "royalbed/http-status.h"
+#include "royalbed/mime-type.h"
+#include "royalbed/swagger.h"
+#include "royalbed/static-files.h"
 
 CMRC_DECLARE(royalbed::swagger);
 
@@ -22,7 +22,7 @@ void swagger(Router& router, const cmrc::embedded_filesystem& fs, std::string_vi
           {"Content-Length", std::to_string(file.size())},
           {"Content-Type", mimeType},
         });
-        session->close(restbed::OK, restbed::Bytes{file.begin(), file.end()});
+        session->close(HttpStatus::Ok, restbed::Bytes{file.begin(), file.end()});
     });
 }
 

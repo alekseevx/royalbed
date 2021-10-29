@@ -5,9 +5,10 @@
 #include <type_traits>
 
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 #include <nlohmann/json.hpp>
+
 #include "royalbed/detail/traits.h"
+#include "royalbed/http-status.h"
 
 namespace royalbed {
 
@@ -29,7 +30,7 @@ void sendJson(restbed::Session& session, int httpStatus, const Value& value)
 template<typename Value>
 void sendJson(restbed::Session& session, const Value& value)
 {
-    sendJson<Value>(session, restbed::OK, value);
+    sendJson<Value>(session, HttpStatus::Ok, value);
 }
 
 void sendError(restbed::Session& session, std::exception_ptr exPtr);

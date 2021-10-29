@@ -1,20 +1,19 @@
 #include <memory>
+#include <string>
 
 #include <corvusoft/restbed/http.hpp>
 #include <corvusoft/restbed/resource.hpp>
 #include <corvusoft/restbed/session.hpp>
 #include <corvusoft/restbed/settings.hpp>
-#include <corvusoft/restbed/status_code.hpp>
+#include <corvusoft/restbed/rule.hpp>
 
 #include <gtest/gtest.h>
 
-#include <royalbed/detail/fetch-body-rule.h>
-#include <string>
-
-#include "corvusoft/restbed/rule.hpp"
+#include "royalbed/detail/fetch-body-rule.h"
 #include "helpers/resp.h"
 #include "helpers/req.h"
 #include "helpers/test-service.h"
+#include "royalbed/http-status.h"
 
 namespace {
 using namespace royalbed;
@@ -41,7 +40,7 @@ std::unique_ptr<TestService> makeTestServer()   // NOLINT
             EXPECT_EQ(req->get_body().size(), contentLength);
         }
 
-        session->close(restbed::OK);
+        session->close(HttpStatus::Ok);
     });
 
     return std::make_unique<TestService>(TestService::Resources{resource}, TestService::Rules{fetchBodyRule});
@@ -58,7 +57,7 @@ TEST(FetchBodyRule, NotFetch)   // NOLINT
     req->set_header("Content-Type", "application/other");
     req->set_header("Content-Length", std::to_string(etalonData.size()));
     const auto resp = restbed::Http::sync(req);
-    EXPECT_EQ(resp->get_status_code(), restbed::OK);
+    EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
 }
 
 TEST(FetchBodyRule, WrongContentLength)   // NOLINT
@@ -70,7 +69,7 @@ TEST(FetchBodyRule, WrongContentLength)   // NOLINT
         req->set_body(etalonData);
         req->set_header("Content-Type", "application/fetch");
         const auto resp = restbed::Http::sync(req);
-        EXPECT_EQ(resp->get_status_code(), restbed::LENGTH_REQUIRED);
+        EXPECT_EQ(resp->get_status_code(), HttpStatus::LengthRequired);
     }
 
     {
@@ -79,7 +78,7 @@ TEST(FetchBodyRule, WrongContentLength)   // NOLINT
         req->set_header("Content-Type", "application/fetch");
         req->set_header("Content-Length", std::to_string(tooLargeData.size()));
         const auto resp = restbed::Http::sync(req);
-        EXPECT_EQ(resp->get_status_code(), restbed::REQUEST_ENTITY_TOO_LARGE);
+        EXPECT_EQ(resp->get_status_code(), HttpStatus::RequestEntityTooLarge);
     }
 }
 
@@ -92,5 +91,5 @@ TEST(FetchBodyRule, Fetch)   // NOLINT
     req->set_header("Content-Type", "application/fetch");
     req->set_header("Content-Length", std::to_string(etalonData.size()));
     const auto resp = restbed::Http::sync(req);
-    EXPECT_EQ(resp->get_status_code(), restbed::OK);
+    EXPECT_EQ(resp->get_status_code(), HttpStatus::Ok);
 }

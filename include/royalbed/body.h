@@ -5,12 +5,12 @@
 
 #include <corvusoft/restbed/request.hpp>
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
-#include <royalbed/http-error.h>
 #include "royalbed/detail/traits.h"
+#include "royalbed/http-error.h"
+#include "royalbed/http-status.h"
 
 namespace royalbed {
 
@@ -79,7 +79,7 @@ T parseBody(const restbed::Request& req)
         return jsonValue.get<T>();
     } catch (const std::exception& ex) {
         const auto message = fmt::format("Failed to parse request body: {}", ex.what());
-        throw HttpError(restbed::BAD_REQUEST, message);
+        throw HttpError(HttpStatus::BadRequest, message);
     }
 }
 

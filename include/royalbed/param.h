@@ -11,11 +11,11 @@
 
 #include <corvusoft/restbed/request.hpp>
 #include <corvusoft/restbed/session.hpp>
-#include <corvusoft/restbed/status_code.hpp>
 #include <fmt/core.h>
 
-#include <royalbed/http-error.h>
-#include <royalbed/string.h>
+#include "royalbed/http-error.h"
+#include "royalbed/http-status.h"
+#include "royalbed/string.h"
 
 namespace royalbed {
 
@@ -199,7 +199,7 @@ std::optional<T> getParam(const restbed::Request& req, const ParamProperties<T>&
 
     } catch (const std::exception& ex) {
         const auto message = fmt::format("Failed to get '{}' parameter: {}", paramProps.name, ex.what());
-        throw HttpError(restbed::BAD_REQUEST, message);
+        throw HttpError(HttpStatus::BadRequest, message);
     }
 }
 
