@@ -15,7 +15,7 @@
 
 #include "royalbed/http-error.h"
 #include "royalbed/http-status.h"
-#include "royalbed/string.h"
+#include "royalbed/detail/string-utils.h"
 
 namespace royalbed {
 
@@ -191,7 +191,7 @@ std::optional<T> getParam(const restbed::Request& req, const ParamProperties<T>&
             return paramProps.defaultValue;
         }
 
-        T val = fromString<T>(param.value());
+        T val = detail::fromString<T>(param.value());
         if (paramProps.checker != nullptr) {
             paramProps.checker(val);
         }

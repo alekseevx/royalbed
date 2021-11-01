@@ -1,12 +1,11 @@
-#include <ios>
 #include <stdexcept>
 #include <string>
 
 #include <fmt/core.h>
 
-#include <royalbed/string.h>
+#include "royalbed/detail/string-utils.h"
 
-namespace royalbed {
+namespace royalbed::detail {
 
 namespace {
 
@@ -89,4 +88,4 @@ unsigned long long fromString(const std::string& str)
     return toNumber<std::stoull>(str);
 }
 
-}   // namespace royalbed
+}   // namespace royalbed::detail

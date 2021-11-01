@@ -6,8 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#include <royalbed/http-error.h>
-#include <royalbed/param.h>
+#include "royalbed/http-error.h"
+#include "royalbed/param.h"
 
 namespace {
 

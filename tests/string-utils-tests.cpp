@@ -1,13 +1,14 @@
 #include <climits>
 #include <limits>
 #include <string>
-#include <royalbed/string.h>
 #include <gtest/gtest.h>
 #include <type_traits>
 
+#include "royalbed/detail/string-utils.h"
+
 namespace {
 
-using namespace royalbed;
+using namespace royalbed::detail;
 using namespace std::literals;
 
 template<typename Int>
