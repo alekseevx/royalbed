@@ -5,6 +5,7 @@
 
 #include "nhope/io/io-device.h"
 #include "royalbed/detail/dict.h"
+#include "royalbed/detail/uri.h"
 
 namespace royalbed::detail {
 
@@ -14,14 +15,10 @@ using RequestPtr = std::unique_ptr<Request>;
 struct Request final
 {
     using Headers = Dict<DictKeyCaseInsensitive>;
-    using Query = Dict<DictKeyCaseSensitive>;
 
     std::string method;
-    std::string path;
-
+    Uri uri;
     Headers headers;
-    Query query;
-
     nhope::ReaderPtr body;
 
     static RequestPtr create();
