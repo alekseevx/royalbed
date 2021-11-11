@@ -10,7 +10,9 @@
 #include "nhope/async/ao-context-error.h"
 #include "nhope/async/ao-context.h"
 #include "nhope/async/async-invoke.h"
+#include "nhope/async/future.h"
 #include "nhope/async/thread-executor.h"
+#include "nhope/async/thread-pool-executor.h"
 #include "nhope/async/timer.h"
 #include "nhope/io/io-device.h"
 #include "nhope/io/pushback-reader.h"
@@ -284,4 +286,42 @@ TEST(ReceiveRequest, BodyReader_Cancel)   // NOLINT
     aoCtx.close();
 
     EXPECT_THROW(future.get(), nhope::AsyncOperationWasCancelled);   // NOLINT
+}
+
+TEST(ReceiveRequest, TwoRequest)   // NOLINT
+{
+    nhope::ThreadExecutor executor;
+    nhope::AOContext aoCtx(executor);
+
+    auto conn = nhope::PushbackReader::create(   //
+      aoCtx,                                     //
+      nhope::StringReader::create(aoCtx, "GET /first HTTP/1.1\r\n"
+                                         "Content-Length: 10\r\n"
+                                         "\r\n"
+                                         "first-body"
+                                         "GET /second HTTP/1.1\r\n"
+                                         "Content-Length: 11\r\n"
+                                         "\r\n"
+                                         "second-body"));
+
+    nhope::makeReadyFuture()
+      .then(aoCtx,
+            [&] {
+                return receiveRequest(aoCtx, *conn).then([](auto req) {
+                    EXPECT_EQ(req->uri.toString(), "/first");
+                    return nhope::readAll(std::move(req->body)).then([](auto content) {
+                        EXPECT_EQ(toString(content), "first-body");
+                    });
+                });
+            })
+      .then(aoCtx,
+            [&] {
+                return receiveRequest(aoCtx, *conn).then([](auto req) {
+                    EXPECT_EQ(req->uri.toString(), "/second");
+                    return nhope::readAll(std::move(req->body)).then([](auto content) {
+                        EXPECT_EQ(toString(content), "second-body");
+                    });
+                });
+            })
+      .get();
 }

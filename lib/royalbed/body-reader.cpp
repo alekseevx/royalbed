@@ -49,7 +49,7 @@ public:
                   llhttp_finish(m_httpParser.get());
               }
 
-              if (m_httpParser->error != HPE_OK) {
+              if (m_httpParser->error != HPE_OK && m_httpParser->error != HPE_PAUSED) {
                   const auto* reason = llhttp_get_error_reason(m_httpParser.get());
                   handler(std::make_exception_ptr(HttpError(HttpStatus::BadRequest, reason)), n);
                   return;
@@ -79,7 +79,7 @@ private:
     {
         auto* self = static_cast<BodyReaderImpl*>(httpParser->data);
         self->m_eof = true;
-        return HPE_OK;
+        return HPE_PAUSED;
     }
 
     static constexpr llhttp_settings_s llhttpSettings = {
