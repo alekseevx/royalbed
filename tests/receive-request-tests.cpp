@@ -242,9 +242,10 @@ TEST(ReceiveRequest, Cancel)   // NOLINT
     nhope::AOContext aoCtx(executor);
 
     auto conn = nhope::PushbackReader::create(
-      aoCtx,                                                                           //
-      nhope::concat(aoCtx, nhope::StringReader::create(aoCtx, "GET /path HTTP/1.1"),   // Begining of the request header
-                    SlowReader::create(aoCtx))                                         // long reading
+      aoCtx,                                                                    //
+      nhope::concat(aoCtx,                                                      //
+                    nhope::StringReader::create(aoCtx, "GET /path HTTP/1.1"),   // Begining of the request header
+                    SlowReader::create(aoCtx))                                  // long reading
     );
 
     auto future = nhope::asyncInvoke(aoCtx, [&] {
