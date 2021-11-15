@@ -16,6 +16,7 @@
 #include "helpers/iodevs.h"
 
 namespace {
+
 using namespace std::literals;
 using namespace royalbed;
 using namespace royalbed::detail;
