@@ -2,22 +2,24 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstddef>
 #include <string>
+#include <string_view>
+#include <type_traits>
 
 namespace royalbed::detail {
 
-inline std::string toLower(std::string str)
+inline std::string toLower(std::string_view str)
 {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) {
+    std::string result(str.size(), '\0');
+    std::transform(str.begin(), str.end(), result.begin(), [](char ch) {
         return static_cast<char>(std::tolower(ch));
     });
-    return str;
+    return result;
 }
 
 struct LowercaseHash final
 {
-    std::size_t operator()(const std::string& key) const
+    std::size_t operator()(std::string_view key) const
     {
         return std::hash<std::string>()(toLower(key));
     }
@@ -25,7 +27,7 @@ struct LowercaseHash final
 
 struct LowercaseLess final
 {
-    bool operator()(const std::string& a, const std::string& b) const
+    bool operator()(std::string_view a, std::string_view b) const
     {
         return toLower(a) < toLower(b);
     }
@@ -33,14 +35,14 @@ struct LowercaseLess final
 
 struct LowercaseEqual final
 {
-    bool operator()(const std::string& a, const std::string& b) const
+    bool operator()(std::string_view a, std::string_view b) const
     {
         return toLower(a) == toLower(b);
     }
 };
 
 template<typename T>
-T fromString(const std::string& /*unused*/)
+T fromString(std::string_view /*unused*/)
 {
     static_assert(!std::is_same_v<T, T>, "string can't be converted to T."
                                          "Please define specialization fromString<T>.");
@@ -48,24 +50,30 @@ T fromString(const std::string& /*unused*/)
 }
 
 template<>
-std::string fromString(const std::string& str);
+std::string fromString(std::string_view str);
 
 template<>
-int fromString(const std::string& str);
+short fromString(std::string_view str);
 
 template<>
-unsigned int fromString(const std::string& str);
+unsigned short fromString(std::string_view str);
 
 template<>
-long fromString(const std::string& str);
+int fromString(std::string_view str);
 
 template<>
-unsigned long fromString(const std::string& str);
+unsigned int fromString(std::string_view str);
 
 template<>
-long long fromString(const std::string& str);
+long fromString(std::string_view str);
 
 template<>
-unsigned long long fromString(const std::string& str);
+unsigned long fromString(std::string_view str);
+
+template<>
+long long fromString(std::string_view str);
+
+template<>
+unsigned long long fromString(std::string_view str);
 
 }   // namespace royalbed::detail

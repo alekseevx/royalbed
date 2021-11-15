@@ -1,7 +1,12 @@
+#include <cctype>
+#include <charconv>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <system_error>
+#include <type_traits>
 
-#include <fmt/core.h>
+#include "fmt/core.h"
 
 #include "royalbed/detail/string-utils.h"
 
@@ -9,16 +14,58 @@ namespace royalbed::detail {
 
 namespace {
 
-template<auto (&convFn)(const std::string& str, size_t*, int)>
-auto toNumber(const std::string& str)
+class ToIntegerConvertError final : std::invalid_argument
 {
-    constexpr auto base = 10;
+public:
+    explicit ToIntegerConvertError(std::string_view str, std::string_view what)
+      : std::invalid_argument(fmt::format("Unable convert '{}' to integer: {}", str, what))
+    {}
+};
 
-    std::size_t n = 0;
-    auto val = convFn(str, &n, base);
-    if (n < str.size()) {
-        const auto message = fmt::format("Unable convert '{}' to number", str);
-        throw std::invalid_argument(message);
+std::string_view strip(std::string_view str) noexcept
+{
+    while (!str.empty() && (std::isspace(str.front()) != 0)) {
+        str.remove_prefix(1);
+    }
+
+    while (!str.empty() && (std::isspace(str.back()) != 0)) {
+        str.remove_suffix(1);
+    }
+
+    return str;
+}
+
+std::string_view removePlus(std::string_view str)
+{
+    if (!str.empty() && str.front() == '+') {
+        str.remove_prefix(1);
+    }
+    return str;
+}
+
+std::string_view normalization(std::string_view str)
+{
+    str = strip(str);
+    str = removePlus(str);
+    return str;
+}
+
+template<typename T>
+T toInteger(std::string_view str)
+{
+    static_assert(std::is_integral_v<T>);
+
+    const auto normalized = normalization(str);
+
+    T val{};
+    const auto result = std::from_chars(normalized.begin(), normalized.end(), val);
+    if (result.ec != std::errc{}) {
+        const auto errCode = std::make_error_code(result.ec);
+        throw ToIntegerConvertError(str, errCode.message());
+    }
+
+    if (result.ptr != normalized.end()) {
+        throw ToIntegerConvertError(str, "not integer");
     }
 
     return val;
@@ -27,65 +74,57 @@ auto toNumber(const std::string& str)
 }   // namespace
 
 template<>
-std::string fromString(const std::string& str)
+std::string fromString(std::string_view str)
 {
-    return str;
+    return std::string{str};
 }
 
 template<>
-int fromString(const std::string& str)
+short fromString(std::string_view str)
 {
-    return toNumber<std::stoi>(str);
+    return toInteger<short>(str);
 }
 
 template<>
-unsigned int fromString(const std::string& str)
+unsigned short fromString(std::string_view str)
 {
-    if constexpr (sizeof(int) == sizeof(long)) {
-        return static_cast<unsigned int>(fromString<unsigned long>(str));
-    } else {
-        // sizeof(int) < sizeof(long)
-
-        const auto val = fromString<long>(str);
-
-        if (val > std::numeric_limits<unsigned int>::max()) {
-            const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
-            throw std::out_of_range(message);
-        }
-
-        // a signed number is converted to a unsigned. Need to make sure
-        // that there will be no overflow (by analogy with stoul)
-        if (val < std::numeric_limits<int>::min()) {
-            const auto message = fmt::format("Unable convert '{}' to unsigned int", str);
-            throw std::out_of_range(message);
-        }
-
-        return static_cast<unsigned int>(val);
-    }
+    return toInteger<unsigned short>(str);
 }
 
 template<>
-long fromString(const std::string& str)
+int fromString(std::string_view str)
 {
-    return toNumber<std::stol>(str);
+    return toInteger<int>(str);
 }
 
 template<>
-unsigned long fromString(const std::string& str)
+unsigned int fromString(std::string_view str)
 {
-    return toNumber<std::stoul>(str);
+    return toInteger<unsigned int>(str);
 }
 
 template<>
-long long fromString(const std::string& str)
+long fromString(std::string_view str)
 {
-    return toNumber<std::stoll>(str);
+    return toInteger<long>(str);
 }
 
 template<>
-unsigned long long fromString(const std::string& str)
+unsigned long fromString(std::string_view str)
 {
-    return toNumber<std::stoull>(str);
+    return toInteger<unsigned long>(str);
+}
+
+template<>
+long long fromString(std::string_view str)
+{
+    return toInteger<long long>(str);
+}
+
+template<>
+unsigned long long fromString(std::string_view str)
+{
+    return toInteger<unsigned long long>(str);
 }
 
 }   // namespace royalbed::detail
