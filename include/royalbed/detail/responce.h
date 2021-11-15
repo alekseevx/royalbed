@@ -4,23 +4,22 @@
 #include <string>
 
 #include "nhope/io/io-device.h"
-
 #include "royalbed/detail/headers.h"
-#include "royalbed/detail/uri.h"
+#include "royalbed/http-status.h"
 
 namespace royalbed::detail {
 
-struct Request;
-using RequestPtr = std::unique_ptr<Request>;
+struct Responce;
+using ResponcePtr = std::unique_ptr<Responce>;
 
-struct Request final
+struct Responce final
 {
-    std::string method;
-    Uri uri;
+    int status = HttpStatus::Ok;
+    std::string statusMessage;
     Headers headers;
     nhope::ReaderPtr body;
 
-    static RequestPtr create();
+    static ResponcePtr create();
 };
 
 }   // namespace royalbed::detail

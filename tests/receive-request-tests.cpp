@@ -123,7 +123,7 @@ TEST(ReceiveRequest, OnlyHeaders)   // NOLINT
 
     EXPECT_EQ(req->method, "GET");
     EXPECT_EQ(req->uri.toString(), "/path");
-    EXPECT_EQ(req->headers, Request::Headers({
+    EXPECT_EQ(req->headers, Headers({
                               {"Header1", "Value1"},
                               {"Header2", "Value2"},
                             }));
@@ -152,7 +152,7 @@ TEST(ReceiveRequest, BodyReader)   // NOLINT
 
     EXPECT_EQ(req->method, "GET");
     EXPECT_EQ(req->uri.toString(), "/path");
-    EXPECT_EQ(req->headers, Request::Headers({
+    EXPECT_EQ(req->headers, Headers({
                               {"Content-Length", "10"},
                             }));
 
