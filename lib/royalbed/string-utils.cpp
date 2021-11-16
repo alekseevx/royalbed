@@ -14,7 +14,7 @@ namespace royalbed::detail {
 
 namespace {
 
-class ToIntegerConvertError final : std::invalid_argument
+class ToIntegerConvertError final : public std::invalid_argument
 {
 public:
     explicit ToIntegerConvertError(std::string_view str, std::string_view what)

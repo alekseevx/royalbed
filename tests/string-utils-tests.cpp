@@ -83,5 +83,5 @@ TEST(StringUtils, LowercaseEqual)   // NOLINT
 
 TEST(StringUtils, LowercaseLess)   // NOLINT
 {
-    EXPECT_TRUE(LowercaseLess{}("b", "A"));
+    EXPECT_TRUE(LowercaseLess{}("a", "B"));
 }
