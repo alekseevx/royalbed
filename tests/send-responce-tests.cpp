@@ -35,9 +35,7 @@ TEST(SendResponce, SendResponceWithoutBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = nhope::asyncInvoke(aoCtx, [&] {
-                       return sendResponce(aoCtx, std::move(resp), *dev);
-                   }).get();
+    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
@@ -59,9 +57,7 @@ TEST(SendResponce, SendResponceWithCustomStatusMessage)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = nhope::asyncInvoke(aoCtx, [&] {
-                       return sendResponce(aoCtx, std::move(resp), *dev);
-                   }).get();
+    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
@@ -82,9 +78,7 @@ TEST(SendResponce, SendResponceWithBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = nhope::asyncInvoke(aoCtx, [&] {
-                       return sendResponce(aoCtx, std::move(resp), *dev);
-                   }).get();
+    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
@@ -102,9 +96,7 @@ TEST(SendResponce, IOError)   // NOLINT
 
     auto dev = IOErrorWritter::create(aoCtx);
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return sendResponce(aoCtx, std::move(resp), *dev);
-    });
+    auto future = sendResponce(aoCtx, std::move(resp), *dev);
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
@@ -121,9 +113,7 @@ TEST(SendResponce, Cancel)   // NOLINT
 
     auto dev = SlowWritter::create(aoCtx);
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return sendResponce(aoCtx, std::move(resp), *dev);
-    });
+    auto future = sendResponce(aoCtx, std::move(resp), *dev);
 
     aoCtx.close();
 

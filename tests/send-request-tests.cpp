@@ -39,9 +39,7 @@ TEST(SendRequest, SendReqWithoutBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = nhope::asyncInvoke(aoCtx, [&] {
-                       return sendRequest(aoCtx, std::move(req), *dev);
-                   }).get();
+    const auto n = sendRequest(aoCtx, std::move(req), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
@@ -64,9 +62,7 @@ TEST(SendRequest, SendReqWithBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = nhope::asyncInvoke(aoCtx, [&] {
-                       return sendRequest(aoCtx, std::move(req), *dev);
-                   }).get();
+    const auto n = sendRequest(aoCtx, std::move(req), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
@@ -86,9 +82,7 @@ TEST(SendRequest, IOError)   // NOLINT
 
     auto dev = IOErrorWritter::create(aoCtx);
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return sendRequest(aoCtx, std::move(req), *dev);
-    });
+    auto future = sendRequest(aoCtx, std::move(req), *dev);
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
@@ -107,9 +101,7 @@ TEST(SendRequest, Cancel)   // NOLINT
 
     auto dev = SlowWritter::create(aoCtx);
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return sendRequest(aoCtx, std::move(req), *dev);
-    });
+    auto future = sendRequest(aoCtx, std::move(req), *dev);
 
     aoCtx.close();
 

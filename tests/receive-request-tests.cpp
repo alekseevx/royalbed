@@ -1,10 +1,3 @@
-#include <cstdint>
-#include <exception>
-#include <memory>
-#include <string>
-#include <system_error>
-#include <vector>
-
 #include <gtest/gtest.h>
 
 #include "nhope/async/ao-context-error.h"
@@ -13,27 +6,21 @@
 #include "nhope/async/future.h"
 #include "nhope/async/thread-executor.h"
 #include "nhope/async/thread-pool-executor.h"
+#include "nhope/io/io-device.h"
 #include "nhope/io/pushback-reader.h"
 #include "nhope/io/string-reader.h"
 
 #include "royalbed/http-error.h"
 #include "royalbed/receive-request.h"
 
+#include "helpers/bytes.h"
 #include "helpers/iodevs.h"
 
 namespace {
+
 using namespace std::literals;
 using namespace royalbed;
 using namespace royalbed::detail;
-
-std::string toString(const std::vector<std::uint8_t>& bytes)
-{
-    return {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      reinterpret_cast<const char*>(bytes.data()),
-      bytes.size(),
-    };
-}
 
 }   // namespace
 
@@ -43,21 +30,21 @@ TEST(ReceiveRequest, OnlyMethodLine)   // NOLINT
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
+
     auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawRequest));
+    receiveRequest(aoCtx, *conn)
+      .then(aoCtx,
+            [](auto req) {
+                EXPECT_EQ(req->method, "GET");
+                EXPECT_EQ(req->uri.toString(), "/path?k=v#fragment");
+                EXPECT_TRUE(req->headers.empty());
 
-    const auto req = nhope::asyncInvoke(aoCtx, [&] {
-                         return receiveRequest(aoCtx, *conn);
-                     }).get();
-
-    EXPECT_EQ(req->method, "GET");
-    EXPECT_EQ(req->uri.toString(), "/path?k=v#fragment");
-    EXPECT_TRUE(req->headers.empty());
-
-    const auto body = nhope::asyncInvoke(aoCtx, [&] {
-                          return nhope::readAll(*req->body);
-                      }).get();
-
-    EXPECT_TRUE(body.empty());
+                return nhope::readAll(std::move(req->body));
+            })
+      .then([](auto bodyData) {
+          EXPECT_TRUE(bodyData.empty());
+      })
+      .get();
 }
 
 TEST(ReceiveRequest, OnlyHeaders)   // NOLINT
@@ -69,24 +56,23 @@ TEST(ReceiveRequest, OnlyHeaders)   // NOLINT
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
+
     auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawRequest));
+    receiveRequest(aoCtx, *conn)
+      .then([](auto req) {
+          EXPECT_EQ(req->method, "GET");
+          EXPECT_EQ(req->uri.toString(), "/path");
+          EXPECT_EQ(req->headers, Headers({
+                                    {"Header1", "Value1"},
+                                    {"Header2", "Value2"},
+                                  }));
 
-    const auto req = nhope::asyncInvoke(aoCtx, [&] {
-                         return receiveRequest(aoCtx, *conn);
-                     }).get();
-
-    EXPECT_EQ(req->method, "GET");
-    EXPECT_EQ(req->uri.toString(), "/path");
-    EXPECT_EQ(req->headers, Headers({
-                              {"Header1", "Value1"},
-                              {"Header2", "Value2"},
-                            }));
-
-    const auto body = nhope::asyncInvoke(aoCtx, [&] {
-                          return nhope::readAll(*req->body);
-                      }).get();
-
-    EXPECT_TRUE(body.empty());
+          return nhope::readAll(std::move(req->body));
+      })
+      .then([](auto bodyData) {
+          EXPECT_TRUE(bodyData.empty());
+      })
+      .get();
 }
 
 TEST(ReceiveRequest, BodyReader)   // NOLINT
@@ -98,22 +84,22 @@ TEST(ReceiveRequest, BodyReader)   // NOLINT
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
+
     auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawRequest));
+    receiveRequest(aoCtx, *conn)
+      .then([](auto req) {
+          EXPECT_EQ(req->method, "GET");
+          EXPECT_EQ(req->uri.toString(), "/path");
+          EXPECT_EQ(req->headers, Headers({
+                                    {"Content-Length", "10"},
+                                  }));
 
-    const auto req = nhope::asyncInvoke(aoCtx, [&] {
-                         return receiveRequest(aoCtx, *conn);
-                     }).get();
-
-    EXPECT_EQ(req->method, "GET");
-    EXPECT_EQ(req->uri.toString(), "/path");
-    EXPECT_EQ(req->headers, Headers({
-                              {"Content-Length", "10"},
-                            }));
-
-    const auto content = nhope::asyncInvoke(aoCtx, [&] {
-                             return nhope::readAll(*req->body);
-                         }).get();
-    EXPECT_EQ(toString(content), "1234567890");
+          return nhope::readAll(std::move(req->body));
+      })
+      .then([](auto bodyData) {
+          EXPECT_EQ(asString(bodyData), "1234567890");
+      })
+      .get();
 }
 
 TEST(ReceiveRequest, BadRequest)   // NOLINT
@@ -124,9 +110,7 @@ TEST(ReceiveRequest, BadRequest)   // NOLINT
     nhope::AOContext aoCtx(executor);
     auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, badRequest));
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return receiveRequest(aoCtx, *conn);
-    });
+    auto future = receiveRequest(aoCtx, *conn);
 
     EXPECT_THROW(future.get(), HttpError);   // NOLINT
 }
@@ -139,9 +123,7 @@ TEST(ReceiveRequest, IncompleteRequest)   // NOLINT
     nhope::AOContext aoCtx(executor);
     auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, incompleteRequest));
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return receiveRequest(aoCtx, *conn);
-    });
+    auto future = receiveRequest(aoCtx, *conn);
 
     EXPECT_THROW(future.get(), HttpError);   // NOLINT
 }
@@ -157,9 +139,7 @@ TEST(ReceiveRequest, IOError)   // NOLINT
                     IOErrorReader::create(aoCtx))                                      // IOError
     );
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return receiveRequest(aoCtx, *conn);
-    });
+    auto future = receiveRequest(aoCtx, *conn);
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
@@ -179,12 +159,8 @@ TEST(ReceiveRequest, BodyReader_IOError)   // NOLINT
                     IOErrorReader::create(aoCtx))                                 // IOError
     );
 
-    auto req = nhope::asyncInvoke(aoCtx, [&] {
-                   return receiveRequest(aoCtx, *conn);
-               }).get();
-
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return nhope::readAll(*req->body);
+    auto future = receiveRequest(aoCtx, *conn).then([](auto req) {
+        return nhope::readAll(std::move(req->body));
     });
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
@@ -202,9 +178,7 @@ TEST(ReceiveRequest, Cancel)   // NOLINT
                     SlowReader::create(aoCtx))                                  // long reading
     );
 
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return receiveRequest(aoCtx, *conn);
-    });
+    auto future = receiveRequest(aoCtx, *conn);
 
     EXPECT_FALSE(future.waitFor(100ms));
 
@@ -228,15 +202,9 @@ TEST(ReceiveRequest, BodyReader_Cancel)   // NOLINT
                     SlowReader::create(aoCtx))                                    // long body reading
     );
 
-    auto req = nhope::asyncInvoke(aoCtx, [&] {
-                   return receiveRequest(aoCtx, *conn);
-               }).get();
-
-    auto future = nhope::asyncInvoke(aoCtx, [&] {
-        return nhope::readAll(*req->body);
+    auto future = receiveRequest(aoCtx, *conn).then([](auto req) {
+        return nhope::readAll(std::move(req->body));
     });
-
-    EXPECT_FALSE(future.waitFor(100ms));
 
     aoCtx.close();
 
@@ -259,24 +227,21 @@ TEST(ReceiveRequest, TwoRequest)   // NOLINT
                                          "\r\n"
                                          "second-body"));
 
-    nhope::makeReadyFuture()
-      .then(aoCtx,
-            [&] {
-                return receiveRequest(aoCtx, *conn).then([](auto req) {
-                    EXPECT_EQ(req->uri.toString(), "/first");
-                    return nhope::readAll(std::move(req->body)).then([](auto content) {
-                        EXPECT_EQ(toString(content), "first-body");
-                    });
-                });
-            })
-      .then(aoCtx,
-            [&] {
-                return receiveRequest(aoCtx, *conn).then([](auto req) {
-                    EXPECT_EQ(req->uri.toString(), "/second");
-                    return nhope::readAll(std::move(req->body)).then([](auto content) {
-                        EXPECT_EQ(toString(content), "second-body");
-                    });
-                });
-            })
+    receiveRequest(aoCtx, *conn)
+      .then([](auto req) {
+          EXPECT_EQ(req->uri.toString(), "/first");
+          return nhope::readAll(std::move(req->body));
+      })
+      .then([&](auto content) {
+          EXPECT_EQ(asString(content), "first-body");
+
+          return receiveRequest(aoCtx, *conn).then([](auto req) {
+              EXPECT_EQ(req->uri.toString(), "/second");
+              return nhope::readAll(std::move(req->body));
+          });
+      })
+      .then([](auto content) {
+          EXPECT_EQ(asString(content), "second-body");
+      })
       .get();
 }
