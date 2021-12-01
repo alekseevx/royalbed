@@ -2,11 +2,31 @@
 
 #include <algorithm>
 #include <cctype>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace royalbed::detail {
+
+struct StringEqual final
+{
+    using is_transparent = std::true_type;
+
+    bool operator()(std::string_view l, std::string_view r) const noexcept
+    {
+        return l == r;
+    }
+};
+
+struct StringHash final
+{
+    using is_transparent = std::true_type;
+    auto operator()(std::string_view s) const noexcept
+    {
+        return std::hash<std::string_view>{}(s);
+    }
+};
 
 inline std::string toLower(std::string_view str)
 {
