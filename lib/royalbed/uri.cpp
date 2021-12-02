@@ -11,9 +11,9 @@
 #include <fmt/format.h>
 
 #include "nhope/utils/hex.h"
-#include "royalbed/detail/uri.h"
+#include "royalbed/common/uri.h"
 
-namespace royalbed::detail {
+namespace royalbed::common {
 
 namespace {
 using namespace std::literals;
@@ -246,4 +246,4 @@ std::string uriUnescape(std::string_view in, UriEscapeMode mode)
     return out;
 }
 
-}   // namespace royalbed::detail
+}   // namespace royalbed::common
