@@ -57,4 +57,4 @@ if (WIN32)
     target_compile_definitions(${BASTARD_PACKAGE_NAME} PUBLIC -D_WIN32_WINNT=0x0601)
 endif()
 
-EnableWarnings(${BASTARD_PACKAGE_NAME})
+# EnableWarnings(${BASTARD_PACKAGE_NAME})

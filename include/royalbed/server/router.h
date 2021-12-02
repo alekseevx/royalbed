@@ -39,9 +39,11 @@ public:
     Router& put(std::string_view resource, LowLevelHandler handler);
     Router& patch(std::string_view resource, LowLevelHandler handler);
     Router& options(std::string_view resource, LowLevelHandler handler);
-    Router& head(const std::string& resource, LowLevelHandler handler);
+    Router& head(std::string_view resource, LowLevelHandler handler);
 
-    Router& use(std::string_view prefix, Router router);
+    Router& addMiddleware(Middleware middleware);
+
+    Router& use(std::string_view prefix, Router&& router);
 
     Router& setNotFoundHandler(LowLevelHandler handler);
     Router& setMethodNotAllowedHandler(LowLevelHandler handler);

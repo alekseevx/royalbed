@@ -55,10 +55,27 @@ std::pair<std::string_view, std::string_view> headAndTailSegment(std::string_vie
 
 std::string_view limitPathByDepth(std::string_view path, std::size_t depth)
 {
+    // The path must be normalized (see normalizePath)
+    assert(path.empty() || path[0] != '/');   // NOLINT
+
+    if (depth == 1) {
+        // The root
+        return ""sv;
+    }
+
+    if (depth == 2) {
+        // The first semgent
+        assert(!path.empty());   // NOLINT
+        return path.substr(0, path.find('/'));
+    }
+
     std::size_t len = 0;
     for (; depth > 1; --depth) {
-        len = path.find('/', len);
+        // The path must be normalized (see normalizePath)
         assert(len != std::string_view::npos);   // NOLINT
+        assert(len + 1 < path.size());           // NOLINT
+
+        len = path.find('/', len + 1);
     }
     return path.substr(0, len);
 }
@@ -151,7 +168,7 @@ public:
         auto& subtree = isFixedSegment(headSegment) ? m_fixedSubtree : m_paramSubtree;
         auto& ptr = subtree[std::string{headSegment}];
         if (ptr == nullptr) {
-            ptr = std::make_unique<Node>(headSegment);
+            ptr = std::make_unique<Node>(headSegment, this);
         }
 
         return ptr->findOrCreateIfNotExist(tail);
@@ -174,7 +191,7 @@ public:
         return methodNames;
     }
 
-    void setMethodHandler(std::string_view method, LowLevelHandler handler)
+    void setMethodHandler(std::string_view method, LowLevelHandler&& handler)
     {
         m_methodHandlers[std::string{method}] = std::move(handler);
     }
@@ -188,7 +205,7 @@ public:
         return iter->second;
     }
 
-    void setNotFoundHandler(LowLevelHandler handler)
+    void setNotFoundHandler(LowLevelHandler&& handler)
     {
         m_notFoundHandler = std::move(handler);
     }
@@ -198,7 +215,7 @@ public:
         return this->findBestErrHandler(&Node::m_notFoundHandler, defaultNotFoundHandler);
     }
 
-    void setMethodNotAllowedHandler(LowLevelHandler handler)
+    void setMethodNotAllowedHandler(LowLevelHandler&& handler)
     {
         m_methodNotAllowedHandler = std::move(handler);
     }
@@ -206,6 +223,11 @@ public:
     const LowLevelHandler& methodNotAllowedHandler() const noexcept
     {
         return this->findBestErrHandler(&Node::m_methodNotAllowedHandler, defaultMethodNotAllowedHandler);
+    }
+
+    void addMiddleware(Middleware&& middleware)
+    {
+        m_middlewares.push_back(std::move(middleware));
     }
 
     std::list<Middleware> middlewares() const
@@ -312,10 +334,10 @@ private:
         visitor(path, *this);
 
         for (const auto& p : m_paramSubtree) {
-            visit(visitor, path);
+            p.second->visit(visitor, path);
         }
         for (const auto& p : m_fixedSubtree) {
-            visit(visitor, path);
+            p.second->visit(visitor, path);
         }
 
         path.resize(curPathLen);
@@ -378,12 +400,18 @@ Router& Router::options(std::string_view resource, LowLevelHandler handler)
     return this->addRoute("OPTIONS"sv, resource, std::move(handler));
 }
 
-Router& Router::head(const std::string& resource, LowLevelHandler handler)
+Router& Router::head(const std::string_view resource, LowLevelHandler handler)
 {
     return this->addRoute("HEAD"sv, resource, std::move(handler));
 }
 
-Router& Router::use(std::string_view prefix, Router router)
+Router& Router::addMiddleware(Middleware middleware)
+{
+    m_root->addMiddleware(std::move(middleware));
+    return *this;
+}
+
+Router& Router::use(std::string_view prefix, Router&& router)
 {
     router.m_root->visit([this, prefix](std::string_view path, Node& node) {
         const auto newPath = normalizePath(fmt::format("{}/{}", prefix, path));
@@ -417,7 +445,7 @@ RouteResult Router::route(std::string_view method, std::string_view path) const
     const auto [found, bestNode, bestNodeDepth] = m_root->findNode(normalizedPath);
     assert(bestNode != nullptr);   // NOLINT
 
-    if (found) {
+    if (!found) {
         result.handler = bestNode->notFoundHandler();
         return result;
     }
