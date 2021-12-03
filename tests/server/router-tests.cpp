@@ -1,6 +1,8 @@
 #include <set>
 #include <string>
+#include <typeinfo>
 #include <vector>
+
 #include <gtest/gtest.h>
 
 #include "nhope/async/future.h"
@@ -288,6 +290,67 @@ TEST(Router, MethodNotAllowed)   // NOLINT
               typeid(subrouterMethodNotAllowedHandler));
     EXPECT_EQ(router.route("METHOD_NOT_ALLOWED", "/").handler.target_type(),
               defaultMethodNotAllowedHandler.target_type());
+}
+
+TEST(Router, Middleware)   // NOLINT
+{
+    constexpr auto typeids = [](const auto& v) {
+        std::vector<const std::type_info*> res;
+        for (const auto& f : v) {
+            res.push_back(&f.target_type());
+        }
+        return res;
+    };
+
+    constexpr auto subsubrouterMiddleware = [](RequestContext& /*ctx*/) {
+        return nhope::makeReadyFuture<bool>(true);
+    };
+    constexpr auto subsubrouterMiddleware2 = [](RequestContext& /*ctx*/) {
+        return nhope::makeReadyFuture<bool>(true);
+    };
+
+    constexpr auto subrouterMiddleware = [](RequestContext& /*ctx*/) {
+        return nhope::makeReadyFuture<bool>(true);
+    };
+
+    Router subsubrouter;
+    subsubrouter.addMiddleware(subsubrouterMiddleware);
+    subsubrouter.addMiddleware(subsubrouterMiddleware2);
+    subsubrouter.get("/resource", [](RequestContext& /*ctx*/) {
+        return nhope::makeReadyFuture();
+    });
+
+    Router subrouter;
+    subrouter.addMiddleware(subrouterMiddleware);
+    subrouter.use("/subsubrouter", std::move(subsubrouter));
+    subrouter.get("/resource", [](RequestContext& /*ctx*/) {
+        return nhope::makeReadyFuture();
+    });
+
+    Router router;
+    router.use("/subrouter", std::move(subrouter));
+
+    {
+        const auto etalon = std::vector{
+          &typeid(subrouterMiddleware),
+          &typeid(subsubrouterMiddleware),
+          &typeid(subsubrouterMiddleware2),
+        };
+        const auto middlewares = router.route("GET", "/subrouter/subsubrouter/resource").middlewares;
+        EXPECT_EQ(typeids(middlewares), etalon);
+    }
+
+    {
+        const auto etalon = std::vector{
+          &typeid(subrouterMiddleware),
+        };
+        const auto middlewares = router.route("GET", "/subrouter/resource").middlewares;
+        EXPECT_EQ(typeids(middlewares), etalon);
+    }
+    {
+        const auto middlewares = router.route("GET", "/resource").middlewares;
+        EXPECT_TRUE(middlewares.empty());
+    }
 }
 
 TEST(Router, AllowMethods)   // NOLINT
