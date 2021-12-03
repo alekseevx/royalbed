@@ -103,7 +103,7 @@ std::string_view parseQuery(Uri::Query& out, std::string_view in)
 
 void parseFragment(std::string& out, std::string_view in)
 {
-    uriUnescape(out, in);
+    uriUnescape(out, in, UriEscapeMode::Other);
 }
 
 void parseRelativeUri(Uri& out, std::string_view in)
@@ -190,7 +190,7 @@ void uriEscape(std::string& out, std::string_view in, UriEscapeMode mode)
         } else if (ch == ' ' && mode == UriEscapeMode::Query) {
             out.push_back('+');
         } else {
-            constexpr std::string_view hex = "0123456789abcdef"sv;
+            constexpr auto hex = "0123456789abcdef"sv;
             const auto b = static_cast<std::uint8_t>(ch);
             const auto esc = std::array{'%', hex[b >> 4], hex[b & 0x0f]};
             out.append(esc.data(), esc.size());
