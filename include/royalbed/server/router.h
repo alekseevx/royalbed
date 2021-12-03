@@ -31,8 +31,8 @@ public:
     Router(const Router&) = delete;
     Router& operator=(const Router&) = delete;
 
-    Router(Router&&) = default;
-    Router& operator=(Router&&) = default;
+    Router(Router&&) noexcept;
+    Router& operator=(Router&&) noexcept;
 
     Router& get(std::string_view resource, LowLevelHandler handler);
     Router& post(std::string_view resource, LowLevelHandler handler);

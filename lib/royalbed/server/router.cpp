@@ -106,7 +106,7 @@ std::string normalizePath(std::string_view path)
 }
 
 const auto defaultNotFoundHandler = LowLevelHandler{[](RequestContext& ctx) {
-    ctx.log->error("Resource route not found");
+    ctx.log->error("Resource route \"{}\" not found", ctx.request.uri.path);
 
     ctx.responce.status = HttpStatus::NotFound;
     ctx.responce.statusMessage = HttpStatus::message(HttpStatus::NotFound);
@@ -115,7 +115,7 @@ const auto defaultNotFoundHandler = LowLevelHandler{[](RequestContext& ctx) {
 }};
 
 const auto defaultMethodNotAllowedHandler = LowLevelHandler{[](RequestContext& ctx) {
-    ctx.log->error("Method not allowed");
+    ctx.log->error("Method \"{}\" not allowed", ctx.request.method);
 
     const auto allowMethods = ctx.router.allowMethods(ctx.request.uri.path);
 
@@ -374,6 +374,10 @@ Router::Router()
 {}
 
 Router::~Router() = default;
+
+Router::Router(Router&&) noexcept = default;
+
+Router& Router::operator=(Router&&) noexcept = default;
 
 Router& Router::get(std::string_view resource, LowLevelHandler handler)
 {
