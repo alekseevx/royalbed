@@ -3,24 +3,23 @@
 #include <algorithm>
 #include <cstddef>
 #include <concepts>
-#include <string_view>
 #include <functional>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
+#include "fmt/format.h"
+#include "nhope/utils/type.h"
+
+#include "royalbed/common/http-error.h"
+#include "royalbed/common/http-status.h"
 #include "royalbed/common/request.h"
+#include "royalbed/common/detail/param-setters.h"
 
 namespace royalbed::common::detail {
-
-template<size_t N>
-struct StringLiteral
-{
-    constexpr StringLiteral(const char (&str)[N])
-      : val(str)
-    {}
-    const std::string_view val;
-};
 
 enum class ParamLocation
 {
@@ -34,7 +33,7 @@ struct ParamProperties final
     constexpr ParamProperties(std::string_view propName)
       : name(propName)
     {}
-    const std::string_view name;
+    const std::string name;
     ParamLocation loc = ParamLocation::Path;
     bool required = true;
     std::optional<T> defaultValue;
@@ -50,6 +49,15 @@ concept ParametrSetterable = requires
 };
 
 template<typename T>
+concept Conflictable = requires
+{
+    {
+        T::conflicts()
+
+        } -> std::same_as<std::tuple<>>;
+};
+
+template<typename T>
 void initProperties(ParamProperties<T>& properties)
 {}
 
@@ -61,13 +69,26 @@ void initProperties(ParamProperties<T>& properties)
 }
 
 template<typename T, ParametrSetterable<T>... Setters>
+void checkProps()
+{
+    //TODO make it
+    if constexpr (Conflictable<T>) {
+        int x = T::conflicts();
+    }
+}
+
+template<typename T, ParametrSetterable<T>... Setters>
 ParamProperties<T> makeProperties(std::string_view name)
 {
-    //TODO check props
+    checkProps<Setters...>();
+
     ParamProperties<T> props(name);
     initProperties<T, Setters...>(props);
     return props;
 }
+
+template<typename T>
+std::optional<T> getParam(const common::Request& /*req*/, const ParamProperties<T>& /*paramProps*/);
 
 template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
 class Param final
@@ -78,15 +99,9 @@ public:
     Param& operator=(const Param&) = default;
     Param& operator=(Param&&) noexcept = default;
 
-    // explicit Param(const royalbed::common::Request& req)
-    //   : m_data(getParam<T>(req, Param::props()))
-    // {
-    //     // req.uri.path;
-    // }
-
-    // explicit Param(const restbed::Session& session)
-    //   : m_data(getParam<T>(session, Param::props()))
-    // {}
+    explicit Param(const royalbed::common::Request& req)
+      : m_data(getParam<T>(req, makeProperties<T, Properties...>(name.val)))
+    {}
 
     const T& operator*() const
     {
@@ -113,14 +128,48 @@ public:
         return m_data;
     }
 
-    static const ParamProperties<T>& props()
-    {
-        static const auto props = makeProperties<T, Properties...>(name);
-        return props;
-    }
-
 private:
     std::optional<T> m_data;
 };
+
+template<ParamLocation loc>
+struct ParamLocProp final
+{
+    template<typename T>
+    static void set(ParamProperties<T>& properies)
+    {
+        properies.loc = loc;
+    }
+};
+
+template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
+using PathParam = Param<T, name, ParamLocProp<ParamLocation::Path>, Properties...>;
+
+template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
+using QueryParam = Param<T, name, ParamLocProp<ParamLocation::Query>, Properties...>;
+
+std::optional<std::string> getParam(const common::Request& req, const std::string& name, ParamLocation loc,
+                                    bool required);
+
+template<typename T>
+std::optional<T> getParam(const common::Request& req, const ParamProperties<T>& paramProps)
+{
+    const std::optional<std::string> param = getParam(req, paramProps.name, paramProps.loc, paramProps.required);
+    try {
+        if (!param.has_value()) {
+            return paramProps.defaultValue;
+        }
+
+        T val = fromString<T>(param.value());
+        if (paramProps.validate != nullptr) {
+            paramProps.validate(val);
+        }
+        return val;
+
+    } catch (const std::exception& ex) {
+        const auto message = fmt::format("Failed to get '{}' parameter: {}", paramProps.name, ex.what());
+        throw HttpError(HttpStatus::BadRequest, message);
+    }
+}
 
 }   // namespace royalbed::common::detail
