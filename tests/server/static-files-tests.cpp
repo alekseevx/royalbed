@@ -132,7 +132,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
     for (const auto& rec : testRecs) {
         RequestContext reqCtx{
           .num = 1,
-          .aoCtx{aoCtx},
+          .aoCtx = nhope::AOContext(aoCtx),
           .log = spdlog::default_logger(),
           .router = router,
         };
@@ -156,7 +156,7 @@ TEST(Swagger, Api)   // NOLINT
     Router router;
     RequestContext reqCtx{
       .num = 1,
-      .aoCtx{aoCtx},
+      .aoCtx = nhope::AOContext(aoCtx),
       .log = spdlog::default_logger(),
       .router = router,
     };
