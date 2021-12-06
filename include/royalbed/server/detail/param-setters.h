@@ -2,8 +2,14 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <tuple>
 #include <string_view>
+
+#include <fmt/format.h>
+
+#include "royalbed/common/http-error.h"
+#include "royalbed/common/http-status.h"
 
 namespace royalbed::server::detail {
 
@@ -23,18 +29,18 @@ struct ParamProperties;
 struct Required final
 {
     template<typename T>
-    static void set(ParamProperties<T>& properies)
+    static void set(ParamProperties<T>& properties)
     {
-        properies.required = true;
+        properties.required = true;
     }
 };
 
 struct NotRequired final
 {
     template<typename T>
-    static void set(ParamProperties<T>& properies)
+    static void set(ParamProperties<T>& properties)
     {
-        properies.required = false;
+        properties.required = false;
     }
 
     static constexpr std::tuple<Required> confilcts{{}};
@@ -44,19 +50,19 @@ template<const auto& value>
 struct DefaultValue final
 {
     template<typename T>
-    static void set(ParamProperties<T>& properies)
+    static void set(ParamProperties<T>& properties)
     {
-        properies.defaultValue = T(value);
+        properties.defaultValue = T(value);
     }
 };
 
-template<int T>
+template<std::int64_t T>
 struct DefaultInt final
 {
     template<typename V>
-    static void set(ParamProperties<V>& properies)
+    static void set(ParamProperties<V>& properties)
     {
-        properies.defaultValue.emplace(T);
+        properties.defaultValue.emplace(T);
     }
 };
 
@@ -64,9 +70,37 @@ template<StringLiteral T>
 struct DefaultStr final
 {
     template<typename V>
-    static void set(ParamProperties<V>& properies)
+    static void set(ParamProperties<V>& properties)
     {
-        properies.defaultValue.emplace(T.val);
+        properties.defaultValue.emplace(T.val);
+    }
+};
+
+template<std::int64_t MaxVal>
+struct Max final
+{
+    template<typename T>
+    static void validate(ParamProperties<T>& properties)
+    {
+        properties.validators.emplace_back([](const auto& val) {
+            if (val > MaxVal) {
+                throw common::HttpError(common::HttpStatus::BadRequest, fmt::format("param value to big: {}", val));
+            }
+        });
+    }
+};
+
+template<std::int64_t MinVal>
+struct Min final
+{
+    template<typename T>
+    static void validate(ParamProperties<T>& properties)
+    {
+        properties.validators.emplace_back([](const auto& val) {
+            if (val < MinVal) {
+                throw common::HttpError(common::HttpStatus::BadRequest, fmt::format("param value to small: {}", val));
+            }
+        });
     }
 };
 

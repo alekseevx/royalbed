@@ -38,7 +38,7 @@ struct ParamProperties final
     ParamLocation loc = ParamLocation::Path;
     bool required = true;
     std::optional<T> defaultValue;
-    std::function<void(const T&)> validate;
+    std::vector<std::function<void(const T&)>> validators;
 };
 
 template<typename T, typename P>
@@ -48,6 +48,17 @@ concept ParametrSetterable = requires
         T::set(std::declval<ParamProperties<P>&>())
         } -> std::same_as<void>;
 };
+
+template<typename T, typename P>
+concept ParametrValidateble = requires
+{
+    {
+        T::validate(std::declval<ParamProperties<P>&>())
+        } -> std::same_as<void>;
+};
+
+template<typename T, typename P>
+concept ParametrSettings = ParametrValidateble<T, P> || ParametrSetterable<T, P>;
 
 template<typename T>
 concept Conflictable = requires
@@ -62,23 +73,27 @@ template<typename T>
 void initProperties(ParamProperties<T>& properties)
 {}
 
-template<typename T, ParametrSetterable<T> HeadProperty, ParametrSetterable<T>... TailProperties>
+template<typename T, ParametrSettings<T> HeadProperty, ParametrSettings<T>... TailProperties>
 void initProperties(ParamProperties<T>& properties)
 {
-    HeadProperty::set(properties);
+    if constexpr (ParametrSetterable<HeadProperty, T>) {
+        HeadProperty::set(properties);
+    } else if constexpr (ParametrValidateble<HeadProperty, T>) {
+        HeadProperty::validate(properties);
+    }
     initProperties<T, TailProperties...>(properties);
 }
 
-template<typename T, ParametrSetterable<T>... Setters>
+template<typename T, ParametrSettings<T>... Setters>
 void checkProps()
 {
     //TODO make it
     if constexpr (Conflictable<T>) {
-        int x = T::conflicts();
+        auto v = T::conflicts();
     }
 }
 
-template<typename T, ParametrSetterable<T>... Setters>
+template<typename T, ParametrSettings<T>... Setters>
 ParamProperties<T> makeProperties(std::string_view name)
 {
     checkProps<Setters...>();
@@ -91,7 +106,7 @@ ParamProperties<T> makeProperties(std::string_view name)
 template<typename T>
 std::optional<T> getParam(const server::RequestContext& /*req*/, const ParamProperties<T>& /*paramProps*/);
 
-template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
+template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
 class Param final
 {
 public:
@@ -143,10 +158,10 @@ struct ParamLocProp final
     }
 };
 
-template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
+template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
 using PathParam = Param<T, name, ParamLocProp<ParamLocation::Path>, Properties...>;
 
-template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
+template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
 using QueryParam = Param<T, name, ParamLocProp<ParamLocation::Query>, Properties...>;
 
 std::optional<std::string> getParam(const server::RequestContext& req, const std::string& name, ParamLocation loc,
@@ -162,8 +177,8 @@ std::optional<T> getParam(const server::RequestContext& req, const ParamProperti
         }
 
         T val = common::detail::fromString<T>(param.value());
-        if (paramProps.validate != nullptr) {
-            paramProps.validate(val);
+        for (const auto& validate : paramProps.validators) {
+            validate(val);
         }
         return val;
 

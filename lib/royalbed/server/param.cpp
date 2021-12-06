@@ -44,7 +44,7 @@ std::optional<std::string> getParam(const RequestContext& req, const std::string
 
     if (required) {
         const auto message = fmt::format("Required parameter '{}' not found", name);
-        throw HttpError(HttpStatus::BadRequest, message);
+        throw common::HttpError(HttpStatus::BadRequest, message);
     }
 
     return std::nullopt;

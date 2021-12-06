@@ -101,9 +101,13 @@ TEST(Param, invalid)   // NOLINT
     const auto res = router.route("GET", reqCtx.request.uri.path);
     reqCtx.rawPathParams = res.rawPathParams;
 
-    try {
-        PathParam<int, "someTest"> param(reqCtx);
-        FAIL() << "must throw...";
-    } catch (const royalbed::common::HttpError&) {
+    //NOLINTNEXTLINE
+    EXPECT_THROW((PathParam<int, "someTest">(reqCtx)), royalbed::common::HttpError);
+
+    {
+        const auto res = router.route("GET", "/prefix/0");
+        reqCtx.rawPathParams = res.rawPathParams;
+        //NOLINTNEXTLINE
+        EXPECT_THROW((PathParam<int, "someTest", Min<1>, Max<3>>(reqCtx)), royalbed::common::HttpError);
     }
 }
