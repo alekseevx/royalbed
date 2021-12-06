@@ -17,6 +17,7 @@
 #include "fmt/format.h"
 #include "nhope/async/future.h"
 
+#include "nhope/utils/scope-exit.h"
 #include "royalbed/common/detail/string-utils.h"
 
 #include "royalbed/server/low-level-handler.h"
@@ -176,7 +177,7 @@ public:
 
     FindResult findNode(std::string_view path) const
     {
-        FindCtx ctx{this};
+        FindCtx ctx;
         const bool found = this->findNode(ctx, path);
         return {found, ctx.bestNode, ctx.bestNodeDepth};
     }
@@ -270,10 +271,6 @@ public:
 private:
     struct FindCtx
     {
-        explicit FindCtx(const Node* root)
-          : bestNode(root)
-        {}
-
         void entry(const Node* node)
         {
             if (++curDepth > bestNodeDepth) {
@@ -288,7 +285,7 @@ private:
             --curDepth;
         }
 
-        std::size_t curDepth = 1;
+        std::size_t curDepth = 0;
 
         std::size_t bestNodeDepth = curDepth;
         const Node* bestNode = nullptr;
@@ -296,33 +293,29 @@ private:
 
     bool findNode(FindCtx& ctx, std::string_view path) const
     {
+        ctx.entry(this);
+        nhope::ScopeExit leaveScopeExit([&ctx] {
+            ctx.leave();
+        });
+
         if (path.empty()) {
             return true;
         }
 
         const auto [headSegment, tail] = headSegmentAndTail(path);
         if (const auto iter = m_fixedSubtree.find(std::string{headSegment}); iter != m_fixedSubtree.end()) {
-            if (findNode(ctx, iter->second.get(), tail)) {
+            if (iter->second->findNode(ctx, tail)) {
                 return true;
             }
         }
 
         for (const auto& [_, node] : m_paramSubtree) {
-            if (findNode(ctx, node.get(), tail)) {
+            if (node->findNode(ctx, tail)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    static bool findNode(FindCtx& ctx, const Node* node, std::string_view path)
-    {
-        ctx.entry(node);
-        const bool res = node->findNode(ctx, path);
-        ctx.leave();
-
-        return res;
     }
 
     template<typename Visitor>
