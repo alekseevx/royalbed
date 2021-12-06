@@ -1,21 +1,41 @@
 
-#include "royalbed/common/detail/param.h"
+#include <algorithm>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
-namespace royalbed::common::detail {
+#include "royalbed/server/detail/param.h"
+#include "royalbed/server/http-error.h"
+#include "royalbed/server/request-context.h"
+
+namespace royalbed::server::detail {
 
 namespace {
 
-std::optional<std::string> getParam(const common::Request& req, const std::string& name, ParamLocation loc)
+std::optional<std::string> findByName(const std::vector<std::pair<std::string, std::string>>& v, std::string_view name)
 {
-    //TODO ...
-    if (loc == ParamLocation::Path) {
-        return req.uri.path;
+    const auto it = std::find_if(v.begin(), v.end(), [&](const auto& p) {
+        return p.first == name;
+    });
+    if (it != v.end()) {
+        return it->second;
     }
-    return req.uri.query.front().second;
+    return std::nullopt;
 }
+
+std::optional<std::string> getParam(const RequestContext& req, std::string_view name, ParamLocation loc)
+{
+    if (loc == ParamLocation::Path) {
+        return findByName(req.rawPathParams, name);
+    }
+    return findByName(req.request.uri.query, name);
+}
+
 }   // namespace
 
-std::optional<std::string> getParam(const Request& req, const std::string& name, ParamLocation loc, bool required)
+std::optional<std::string> getParam(const RequestContext& req, const std::string& name, ParamLocation loc,
+                                    bool required)
 {
     auto param = getParam(req, name, loc);
     if (param != std::nullopt) {
@@ -23,11 +43,11 @@ std::optional<std::string> getParam(const Request& req, const std::string& name,
     }
 
     if (required) {
-        const auto message = fmt::format("Required parameter '{}' not fount", name);
+        const auto message = fmt::format("Required parameter '{}' not found", name);
         throw HttpError(HttpStatus::BadRequest, message);
     }
 
     return std::nullopt;
 }
 
-}   // namespace royalbed::common::detail
+}   // namespace royalbed::server::detail

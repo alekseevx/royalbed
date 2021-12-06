@@ -248,7 +248,7 @@ public:
         }
 
         if (this->isParamNode()) {
-            params.emplace_back(m_nodeSegment, pathTailSegment);
+            params.emplace_back(m_nodeSegment.substr(1), pathTailSegment);
         }
     }
 

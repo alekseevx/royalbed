@@ -16,10 +16,11 @@
 
 #include "royalbed/common/http-error.h"
 #include "royalbed/common/http-status.h"
-#include "royalbed/common/request.h"
-#include "royalbed/common/detail/param-setters.h"
+#include "royalbed/common/detail/string-utils.h"
+#include "royalbed/server/request-context.h"
+#include "royalbed/server/detail/param-setters.h"
 
-namespace royalbed::common::detail {
+namespace royalbed::server::detail {
 
 enum class ParamLocation
 {
@@ -88,7 +89,7 @@ ParamProperties<T> makeProperties(std::string_view name)
 }
 
 template<typename T>
-std::optional<T> getParam(const common::Request& /*req*/, const ParamProperties<T>& /*paramProps*/);
+std::optional<T> getParam(const server::RequestContext& /*req*/, const ParamProperties<T>& /*paramProps*/);
 
 template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
 class Param final
@@ -99,7 +100,7 @@ public:
     Param& operator=(const Param&) = default;
     Param& operator=(Param&&) noexcept = default;
 
-    explicit Param(const royalbed::common::Request& req)
+    explicit Param(const server::RequestContext& req)
       : m_data(getParam<T>(req, makeProperties<T, Properties...>(name.val)))
     {}
 
@@ -148,11 +149,11 @@ using PathParam = Param<T, name, ParamLocProp<ParamLocation::Path>, Properties..
 template<typename T, StringLiteral name, ParametrSetterable<T>... Properties>
 using QueryParam = Param<T, name, ParamLocProp<ParamLocation::Query>, Properties...>;
 
-std::optional<std::string> getParam(const common::Request& req, const std::string& name, ParamLocation loc,
+std::optional<std::string> getParam(const server::RequestContext& req, const std::string& name, ParamLocation loc,
                                     bool required);
 
 template<typename T>
-std::optional<T> getParam(const common::Request& req, const ParamProperties<T>& paramProps)
+std::optional<T> getParam(const server::RequestContext& req, const ParamProperties<T>& paramProps)
 {
     const std::optional<std::string> param = getParam(req, paramProps.name, paramProps.loc, paramProps.required);
     try {
@@ -160,7 +161,7 @@ std::optional<T> getParam(const common::Request& req, const ParamProperties<T>& 
             return paramProps.defaultValue;
         }
 
-        T val = fromString<T>(param.value());
+        T val = common::detail::fromString<T>(param.value());
         if (paramProps.validate != nullptr) {
             paramProps.validate(val);
         }
@@ -168,8 +169,8 @@ std::optional<T> getParam(const common::Request& req, const ParamProperties<T>& 
 
     } catch (const std::exception& ex) {
         const auto message = fmt::format("Failed to get '{}' parameter: {}", paramProps.name, ex.what());
-        throw HttpError(HttpStatus::BadRequest, message);
+        throw common::HttpError(common::HttpStatus::BadRequest, message);
     }
 }
 
-}   // namespace royalbed::common::detail
+}   // namespace royalbed::server::detail

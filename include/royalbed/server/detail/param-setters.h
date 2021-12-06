@@ -5,7 +5,7 @@
 #include <tuple>
 #include <string_view>
 
-namespace royalbed::common::detail {
+namespace royalbed::server::detail {
 
 template<size_t N>
 struct StringLiteral
@@ -70,4 +70,4 @@ struct DefaultStr final
     }
 };
 
-}   // namespace royalbed::common::detail
+}   // namespace royalbed::server::detail
