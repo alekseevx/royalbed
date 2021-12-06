@@ -1,22 +1,19 @@
 #include <string>
 
 #include <gtest/gtest.h>
-#include "royalbed/common/http-error.h"
-#include "royalbed/server/detail/param-setters.h"
+
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context.h"
 #include "nhope/async/thread-executor.h"
 
-#include "royalbed/server/detail/param.h"
-#include "royalbed/common/request.h"
+#include "royalbed/server/param.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/router.h"
 
 namespace {
 
 using namespace std::literals;
-using namespace royalbed::server::detail;
 using namespace royalbed::server;
 
 const std::string maxIntStr = std::to_string(std::numeric_limits<int>::max()) + "1";
@@ -73,7 +70,7 @@ TEST(Param, simple)   // NOLINT
     try {
         PathParam<int, "notExists", Required> throwParam(reqCtx);
         FAIL() << "must throw...";
-    } catch (const royalbed::common::HttpError&) {
+    } catch (const HttpError&) {
     }
 
     EXPECT_EQ(param.get(), 42);
@@ -102,12 +99,12 @@ TEST(Param, invalid)   // NOLINT
     reqCtx.rawPathParams = res.rawPathParams;
 
     //NOLINTNEXTLINE
-    EXPECT_THROW((PathParam<int, "someTest">(reqCtx)), royalbed::common::HttpError);
+    EXPECT_THROW((PathParam<int, "someTest">(reqCtx)), HttpError);
 
     {
         const auto res = router.route("GET", "/prefix/0");
         reqCtx.rawPathParams = res.rawPathParams;
         //NOLINTNEXTLINE
-        EXPECT_THROW((PathParam<int, "someTest", Min<1>, Max<3>>(reqCtx)), royalbed::common::HttpError);
+        EXPECT_THROW((PathParam<int, "someTest", Min<1>, Max<3>>(reqCtx)), HttpError);
     }
 }

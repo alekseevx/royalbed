@@ -8,23 +8,12 @@
 
 #include <fmt/format.h>
 
-#include "royalbed/common/http-error.h"
-#include "royalbed/common/http-status.h"
+#include "royalbed/server/string-literal.h"
+#include "royalbed/server/param-properties.h"
+#include "royalbed/server/http-error.h"
+#include "royalbed/server/http-status.h"
 
-namespace royalbed::server::detail {
-
-template<size_t N>
-struct StringLiteral
-{
-    constexpr StringLiteral(const char (&str)[N])
-    {
-        std::copy_n(str, N, val);
-    }
-    char val[N];
-};
-
-template<typename T>
-struct ParamProperties;
+namespace royalbed::server {
 
 struct Required final
 {
@@ -66,13 +55,13 @@ struct DefaultInt final
     }
 };
 
-template<StringLiteral T>
+template<StringLiteral value>
 struct DefaultStr final
 {
     template<typename V>
     static void set(ParamProperties<V>& properties)
     {
-        properties.defaultValue.emplace(T.val);
+        properties.defaultValue.emplace(value);
     }
 };
 
@@ -104,4 +93,4 @@ struct Min final
     }
 };
 
-}   // namespace royalbed::server::detail
+}   // namespace royalbed::server

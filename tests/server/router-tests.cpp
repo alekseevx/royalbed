@@ -143,28 +143,28 @@ TEST(Router, ExtractParamsFromPath)   // NOLINT
     });
 
     {
-        const auto etalon = RawPathParams{{":a1", "1000"}, {":a2", "2000"}};
+        const auto etalon = RawPathParams{{"a1", "1000"}, {"a2", "2000"}};
 
         const auto r = router.route("GET", "/prefix/1000/path2/2000/aaaaa");
         EXPECT_EQ(r.rawPathParams, etalon);
     }
 
     {
-        const auto etalon = RawPathParams{{":b1", "3000"}, {":b2", "4000"}};
+        const auto etalon = RawPathParams{{"b1", "3000"}, {"b2", "4000"}};
 
         const auto r = router.route("GET", "/prefix/3000/4000/bbbbbb");
         EXPECT_EQ(r.rawPathParams, etalon);
     }
 
     {
-        const auto etalon = RawPathParams{{":c1", "5000"}, {":c2", "6000"}, {":c3", "7000"}};
+        const auto etalon = RawPathParams{{"c1", "5000"}, {"c2", "6000"}, {"c3", "7000"}};
 
         const auto r = router.route("GET", "/prefix/5000/6000/cccc/7000");
         EXPECT_EQ(r.rawPathParams, etalon);
     }
 
     {
-        const auto etalon = RawPathParams{{":d1", "8000"}, {":d2", "9000"}, {":d3", "10000"}, {":d4", "11000"}};
+        const auto etalon = RawPathParams{{"d1", "8000"}, {"d2", "9000"}, {"d3", "10000"}, {"d4", "11000"}};
 
         const auto r = router.route("GET", "/8000/9000/10000/11000");
         EXPECT_EQ(r.rawPathParams, etalon);
