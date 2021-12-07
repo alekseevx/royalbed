@@ -6,19 +6,19 @@
 #include <string>
 #include <vector>
 
-#include "royalbed/server/router.h"
-#include "spdlog/spdlog.h"
 #include <gtest/gtest.h>
+
+#include "cmrc/cmrc.hpp"
+#include "gsl/span"
+#include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context.h"
 #include "nhope/async/thread-executor.h"
 #include "nhope/io/io-device.h"
 
-#include <cmrc/cmrc.hpp>
-#include <gsl/span>
-
+#include "royalbed/server/router.h"
+#include "royalbed/server/static-files.h"
 #include "royalbed/server/swagger.h"
-#include <royalbed/server/detail/static-files.h>
 
 CMRC_DECLARE(royalbed::swagger);
 
@@ -109,7 +109,7 @@ bool eq(gsl::span<const char> v1, gsl::span<const std::uint8_t> v2)
 
 TEST(StaticFiles, getFiles)   // NOLINT
 {
-    const auto router = detail::staticFiles(testFs());
+    const auto router = staticFiles(testFs());
 
     struct TestRec
     {
@@ -132,9 +132,9 @@ TEST(StaticFiles, getFiles)   // NOLINT
     for (const auto& rec : testRecs) {
         RequestContext reqCtx{
           .num = 1,
-          .aoCtx = nhope::AOContext(aoCtx),
           .log = spdlog::default_logger(),
           .router = router,
+          .aoCtx = nhope::AOContext(aoCtx),
         };
         router.route("GET", rec.path).handler(reqCtx).get();
 
@@ -156,9 +156,9 @@ TEST(Swagger, Api)   // NOLINT
     Router router;
     RequestContext reqCtx{
       .num = 1,
-      .aoCtx = nhope::AOContext(aoCtx),
       .log = spdlog::default_logger(),
       .router = router,
+      .aoCtx = nhope::AOContext(aoCtx),
     };
 
     swagger(router, testFs(), "folder2/openapi.yml");

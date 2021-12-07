@@ -7,9 +7,9 @@
 #include "nhope/io/string-reader.h"
 
 #include "royalbed/common/mime-type.h"
-#include <royalbed/server/router.h>
-#include <royalbed/server/swagger.h>
-#include <royalbed/server/detail/static-files.h>
+#include "royalbed/server/router.h"
+#include "royalbed/server/static-files.h"
+#include "royalbed/server/swagger.h"
 
 CMRC_DECLARE(royalbed::swagger);
 
@@ -31,7 +31,7 @@ void swagger(Router& router, const cmrc::embedded_filesystem& fs, std::string_vi
         return nhope::makeReadyFuture();
     });
 
-    router.use("/"sv, detail::staticFiles(cmrc::royalbed::swagger::get_filesystem()));
+    router.use("/"sv, staticFiles(cmrc::royalbed::swagger::get_filesystem()));
 }
 
 }   // namespace royalbed::server

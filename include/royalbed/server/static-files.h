@@ -6,8 +6,8 @@ namespace cmrc {
 class embedded_filesystem;
 }
 
-namespace royalbed::server::detail {
+namespace royalbed::server {
 
 Router staticFiles(const cmrc::embedded_filesystem& fs);
 
-}   // namespace royalbed::server::detail
+}   // namespace royalbed::server
