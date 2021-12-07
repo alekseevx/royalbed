@@ -31,10 +31,14 @@ template<typename T, BodyType B = BodyType::Json>
 class Body final
 {
 public:
-    nhope::Future<T> get(server::RequestContext& req)
+    Body(server::RequestContext& req)
+      : m_req(req)
+    {}
+
+    nhope::Future<T> get()
     {
-        checkMediaType(req.request);
-        return parseBody<T>(req);
+        checkMediaType(m_req.request);
+        return parseBody<T>(m_req);
     }
 
 private:
@@ -49,32 +53,33 @@ private:
             }
         }
     }
+    server::RequestContext& m_req;
 };
 
 template<typename T>
-inline constexpr bool isBody = false;
+static constexpr bool isBody = false;
 template<typename T, BodyType B>
-inline constexpr bool isBody<Body<T, B>> = true;
+static constexpr bool isBody<Body<T, B>> = true;
 
 template<typename T>
-inline constexpr bool isJsonBody = false;
+static constexpr bool isJsonBody = false;
 template<typename T>
-inline constexpr bool isJsonBody<Body<T, BodyType::Json>> = true;
+static constexpr bool isJsonBody<Body<T, BodyType::Json>> = true;
 
 template<typename T>
-inline constexpr bool isXmlBody = false;
+static constexpr bool isXmlBody = false;
 template<typename T>
-inline constexpr bool isXmlBody<Body<T, BodyType::Xml>> = true;
+static constexpr bool isXmlBody<Body<T, BodyType::Xml>> = true;
 
 template<typename T>
-inline constexpr bool isPlainBody = false;
+static constexpr bool isPlainBody = false;
 template<typename T>
-inline constexpr bool isPlainBody<Body<T, BodyType::Plain>> = true;
+static constexpr bool isPlainBody<Body<T, BodyType::Plain>> = true;
 
 template<typename T>
-inline constexpr bool isStreamBody = false;
+static constexpr bool isStreamBody = false;
 template<typename T>
-inline constexpr bool isStreamBody<Body<T, BodyType::Stream>> = true;
+static constexpr bool isStreamBody<Body<T, BodyType::Stream>> = true;
 
 template<typename T>
 nhope::Future<T> parseBody(server::RequestContext& req)

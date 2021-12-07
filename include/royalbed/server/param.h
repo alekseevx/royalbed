@@ -64,7 +64,7 @@ void checkProps()
 template<typename T, ParametrSettings<T>... Setters>
 ParamProperties<T> makeProperties(std::string_view name)
 {
-    checkProps<Setters...>();
+    // checkProps<Setters...>();
 
     ParamProperties<T> props(name);
     initProperties<T, Setters...>(props);
@@ -80,7 +80,7 @@ public:
     Param& operator=(const Param&) = default;
     Param& operator=(Param&&) noexcept = default;
 
-    explicit Param(const RequestContext& req)
+    Param(const RequestContext& req)
       : m_data(detail::extractParam<T>(req, Param::props()))
     {}
 
@@ -134,5 +134,10 @@ using PathParam = Param<T, name, ParamLocProp<ParamLocation::Path>, Properties..
 
 template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
 using QueryParam = Param<T, name, ParamLocProp<ParamLocation::Query>, Properties...>;
+
+template<typename T>
+static constexpr bool isQueryOrParam = false;
+template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
+static constexpr bool isQueryOrParam<Param<T, name, Properties...>> = true;
 
 }   // namespace royalbed::server

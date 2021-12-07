@@ -65,8 +65,8 @@ TEST(Body, ValidBody)   // NOLINT
       .request = std::move(req),
     };
 
-    auto body = Body<TestStruct>();
-    EXPECT_EQ(body.get(reqCtx).get(), etalon);
+    auto body = Body<TestStruct>(reqCtx);
+    EXPECT_EQ(body.get().get(), etalon);
 }
 
 TEST(Body, InvalidBody)   // NOLINT
@@ -88,7 +88,7 @@ TEST(Body, InvalidBody)   // NOLINT
       .request = std::move(req),
     };
 
-    EXPECT_THROW(Body<TestStruct>().get(reqCtx).get(), HttpError);   // NOLINT
+    EXPECT_THROW(Body<TestStruct>(reqCtx).get().get(), HttpError);   // NOLINT
 }
 
 TEST(Body, InvalidContentType)   // NOLINT
@@ -111,5 +111,5 @@ TEST(Body, InvalidContentType)   // NOLINT
       .request = std::move(req),
     };
 
-    EXPECT_THROW(Body<TestStruct>().get(reqCtx).get(), HttpError);   // NOLINT
+    EXPECT_THROW(Body<TestStruct>(reqCtx).get().get(), HttpError);   // NOLINT
 }

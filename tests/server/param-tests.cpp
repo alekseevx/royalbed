@@ -55,10 +55,10 @@ TEST(Param, simple)   // NOLINT
 
     RequestContext reqCtx{
       .num = 1,
+      .aoCtx = nhope::AOContext(aoCtx),
       .log = spdlog::default_logger(),
       .router = router,
       .request = {.uri = Uri::parseRelative("/prefix/42/path2/?someTest2=fx")},
-      .aoCtx = nhope::AOContext(aoCtx),
     };
     const auto res = router.route("GET", reqCtx.request.uri.path);
     reqCtx.rawPathParams = res.rawPathParams;
@@ -90,10 +90,10 @@ TEST(Param, invalid)   // NOLINT
 
     RequestContext reqCtx{
       .num = 1,
+      .aoCtx = nhope::AOContext(aoCtx),
       .log = spdlog::default_logger(),
       .router = router,
       .request = {.uri = Uri::parseRelative("/prefix/" + maxIntStr)},
-      .aoCtx = nhope::AOContext(aoCtx),
     };
     const auto res = router.route("GET", reqCtx.request.uri.path);
     reqCtx.rawPathParams = res.rawPathParams;
