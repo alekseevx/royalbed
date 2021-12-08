@@ -22,7 +22,6 @@ struct RequestContext final
 {
     const std::uint64_t num;
 
-    nhope::AOContext aoCtx;
     std::shared_ptr<spdlog::logger> log;
 
     const Router& router;
@@ -31,6 +30,8 @@ struct RequestContext final
     RawPathParams rawPathParams;
 
     Responce responce;
+
+    nhope::AOContext aoCtx;
 };
 
 }   // namespace royalbed::server

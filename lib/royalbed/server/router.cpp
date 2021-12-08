@@ -281,7 +281,7 @@ private:
 
         void leave()
         {
-            assert(curDepth > 1);   // NOLINT
+            assert(curDepth > 0);   // NOLINT
             --curDepth;
         }
 
