@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <type_traits>
 
@@ -13,6 +14,7 @@
 
 #include "nhope/io/io-device.h"
 #include "nlohmann/json.hpp"
+#include "royalbed/common/request.h"
 #include "royalbed/server/param.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/common/detail/traits.h"
@@ -58,17 +60,37 @@ constexpr void checkRequestHandler()
     }
 }
 
-template<typename Handler, std::size_t... IArg>
-auto callPrivateHandler(RequestContext& ctx, Handler&& handler, std::index_sequence<IArg...> /*unused*/)
+template<typename... Params>
+auto constructParams(Params&&... p)
+{
+    return std::make_tuple(std::forward<Params>(p)...);
+}
+
+template<BodyTypename BType, typename Type>
+auto initParam(RequestContext& ctx, const BType& body)
+{
+    if constexpr (common::isBody<Type>) {
+        return Type(body);
+    } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
+        return Type(ctx);
+    } else {
+        return Type{};
+    }
+}
+
+template<typename Handler, BodyTypename BodyT, std::size_t... IArg>
+auto callPrivateHandler(RequestContext& ctx, const BodyT& body, Handler&& handler,
+                        std::index_sequence<IArg...> /*unused*/)
 {
     using namespace nhope;
     using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using FnRet = typename FnProps::ReturnType;
+    auto paramTuple = constructParams(
+      initParam<decltype(body), std::forward<typename FnProps::template ArgumentType<IArg>>(ctx, body)...>);
     if constexpr (std::is_void_v<FnRet>) {
-        handler(std::forward<typename FnProps::template ArgumentType<IArg>>(ctx)...);
-        return;
+        std::apply(handler, std::move(paramTuple));
     } else {
-        return handler(std::forward<typename FnProps::template ArgumentType<IArg>>(ctx)...);
+        return std::apply(handler, std::move(paramTuple));
     }
 }
 
@@ -81,25 +103,30 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using R = typename FnProps::ReturnType;
 
-    return [handler = std::move(handler)](RequestContext& ctx) {
-        if constexpr (std::is_void_v<R>) {
-            callPrivateHandler(ctx, handler, std::make_index_sequence<FnProps::argumentCount>{});
-        } else {
-            R result = callPrivateHandler(ctx, handler, std::make_index_sequence<FnProps::argumentCount>{});
-            if constexpr (nhope::isFuture<R>) {
-                using FR = typename R::Type;
-                if constexpr (std::is_void_v<FR>) {
-                    return result;
-                } else {
-                    return result.then(ctx.aoCtx, [&ctx](auto v) mutable {
-                        addContent(ctx, nlohmann::to_string(nlohmann::json(v)));
-                    });
-                }
-            } else {
-                addContent(ctx, nlohmann::to_string(nlohmann::json(result)));
-            }
-        }
-        return nhope::makeReadyFuture();
+    return [handler = std::move(handler)](RequestContext& ctx) mutable {
+        return nhope::readAll(*ctx.request.body)
+          .then(ctx.aoCtx, [&ctx, handler = std::move(handler)](const auto& rawBody) mutable {
+              auto body = common::Body<int>(12);   // common::parseBody(ctx, rawBody);
+
+              if constexpr (std::is_void_v<R>) {
+                  callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+              } else {
+                  R result = callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+                  if constexpr (nhope::isFuture<R>) {
+                      using FR = typename R::Type;
+                      if constexpr (std::is_void_v<FR>) {
+                          return result;
+                      } else {
+                          return result.then(ctx.aoCtx, [&ctx](auto v) mutable {
+                              addContent(ctx, nlohmann::to_string(nlohmann::json(v)));
+                          });
+                      }
+                  } else {
+                      addContent(ctx, nlohmann::to_string(nlohmann::json(result)));
+                  }
+              }
+              return;
+          });
     };
 }
 

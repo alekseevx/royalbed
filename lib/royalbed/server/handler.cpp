@@ -7,6 +7,7 @@ namespace royalbed::server::detail {
 
 void addContent(RequestContext& ctx, std::string content)
 {
+    //TODO make other mime-types
     ctx.responce.headers.emplace("Content-Type", "application/json");
     ctx.responce.headers.emplace("Content-Length", std::to_string(content.size()));
     ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, std::move(content));

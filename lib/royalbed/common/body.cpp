@@ -12,12 +12,24 @@
 namespace royalbed::common {
 using namespace std::string_view_literals;
 
-template<>
-nhope::Future<nlohmann::json> parseBody<nlohmann::json>(server::RequestContext& req)
+nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData)
 {
-    return nhope::readAll(*req.request.body).then(req.aoCtx, [](const auto& bodyData) {
-        return nlohmann::json::parse(bodyData.begin(), bodyData.end());
-    });
+    return nlohmann::json::parse(bodyData.begin(), bodyData.end());
+}
+
+BodyType extractBodyType(common::Request& req)
+{
+    const auto contentType = req.headers.at("Content-Type");
+    if (contentType == "application/json"sv) {
+        return BodyType::Json;
+    }
+    if (contentType == "text/plain"sv) {
+        return BodyType::Plain;
+    }
+    if (contentType == "application/octet-stream"sv) {
+        return BodyType::Stream;
+    }
+    return BodyType::NoBody;
 }
 
 }   // namespace royalbed::common
