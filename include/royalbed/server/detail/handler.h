@@ -85,8 +85,7 @@ auto callPrivateHandler(RequestContext& ctx, const BodyT& body, Handler&& handle
     using namespace nhope;
     using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using FnRet = typename FnProps::ReturnType;
-    auto paramTuple = constructParams(
-      initParam<decltype(body), std::forward<typename FnProps::template ArgumentType<IArg>>(ctx, body)...>);
+    auto paramTuple = constructParams(initParam<BodyT, typename FnProps::template ArgumentType<IArg>>(ctx, body)...);
     if constexpr (std::is_void_v<FnRet>) {
         std::apply(handler, std::move(paramTuple));
     } else {
@@ -95,6 +94,20 @@ auto callPrivateHandler(RequestContext& ctx, const BodyT& body, Handler&& handle
 }
 
 void addContent(RequestContext& ctx, std::string content);
+
+template<typename Handler, std::size_t... IArg>
+constexpr bool checkParamHasBody(std::index_sequence<IArg...> /*unused*/)
+{
+    using FnProps = nhope::FunctionProps<Handler>;
+    return ((common::isBody<std::decay_t<typename FnProps::template ArgumentType<IArg>>>) || ...);
+}
+
+template<typename Handler>
+constexpr bool paramHasBody()
+{
+    using FnProps = nhope::FunctionProps<Handler>;
+    return checkParamHasBody<Handler>(std::make_index_sequence<FnProps::argumentCount>{});
+}
 
 template<typename Handler>
 LowLevelHandler makeLowLevelHandler(Handler&& handler)
