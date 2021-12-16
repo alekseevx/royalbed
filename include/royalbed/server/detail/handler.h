@@ -5,6 +5,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -78,10 +79,11 @@ auto constructParams(Params&&... p)
 }
 
 template<BodyTypename BType, typename Type>
-auto initParam(RequestContext& ctx, const BType& body)
+auto initParam(RequestContext& ctx, std::optional<BType>& body)
 {
     if constexpr (common::isBody<std::decay_t<Type>>) {
-        return Type(body);   // call copy constructor
+        assert(body.has_value());         // NOLINT
+        return BType(std::move(*body));   // call move constructor
     } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
         return Type(ctx);
     } else {
@@ -90,7 +92,8 @@ auto initParam(RequestContext& ctx, const BType& body)
 }
 
 template<typename Handler, BodyTypename BodyT, std::size_t... IArg>
-auto callUserHandler(RequestContext& ctx, const BodyT& body, Handler&& handler, std::index_sequence<IArg...> /*unused*/)
+auto callUserHandler(RequestContext& ctx, std::optional<BodyT>&& body, Handler&& handler,
+                     std::index_sequence<IArg...> /*unused*/)
 {
     using namespace nhope;
     using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
@@ -104,15 +107,17 @@ auto callUserHandler(RequestContext& ctx, const BodyT& body, Handler&& handler, 
 }
 
 template<typename Handler, BodyTypename BodyT>
-nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, const BodyT& body)
+nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, std::optional<BodyT>&& body)
 {
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using R = typename FnProps::ReturnType;
 
     if constexpr (std::is_void_v<R>) {
-        callUserHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+        callUserHandler(ctx, std::move(body), std::forward<Handler>(handler),
+                        std::make_index_sequence<FnProps::argumentCount>{});
     } else {
-        R result = callUserHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+        R result = callUserHandler(ctx, std::move(body), std::forward<Handler>(handler),
+                                   std::make_index_sequence<FnProps::argumentCount>{});
         if constexpr (nhope::isFuture<R>) {
             using FR = typename R::Type;
             if constexpr (std::is_void_v<FR>) {
@@ -132,10 +137,11 @@ nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, const Bo
 template<typename Handler, BodyTypename BodyT>
 nhope::Future<void> fetchBodyAndCallHandler(Handler handler, RequestContext& ctx)
 {
-    return nhope::readAll(*ctx.request.body).then(ctx.aoCtx, [&ctx, &handler](const auto& rawBody) {
-        const auto body = common::parseBody<typename BodyT::Type>(ctx.request.headers, rawBody);
-        return callHandler(handler, ctx, body);
-    });
+    return nhope::readAll(*ctx.request.body)
+      .then(ctx.aoCtx, [&ctx, handler = std::move(handler)](const auto& rawBody) mutable {
+          BodyT body = common::parseBody<typename BodyT::Type>(ctx.request.headers, rawBody);
+          return callHandler(std::move(handler), ctx, std::optional<BodyT>(std::move(body)));
+      });
 }
 
 template<typename Handler>
@@ -148,8 +154,6 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
     constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
     constexpr bool paramHasBody = bodyIndex != -1;
 
-    static common::Body<char> stubBody('0');
-
     return [handler = std::move(handler), bodyIndex](RequestContext& ctx) {
         if constexpr (paramHasBody) {
             using BType = std::decay_t<typename FnProps::template ArgumentType<bodyIndex>>;
@@ -158,7 +162,7 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
             }
             return fetchBodyAndCallHandler<Handler, BType>(handler, ctx);
         } else {
-            return callHandler(handler, ctx, stubBody);
+            return callHandler(handler, ctx, std::optional<common::Body<char>>{std::nullopt});
         }
     };
 }

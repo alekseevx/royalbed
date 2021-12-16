@@ -58,7 +58,6 @@ TEST(Body, InvalidBody)   // NOLINT
 
     Request req;
     req.headers.emplace("Content-Type", "application/json");
-    req.body = nhope::StringReader::create(ao, "InvalidBody");
     EXPECT_THROW(royalbed::common::parseBody<TestStruct>(req.headers, {1, 3, 3}), HttpError);   // NOLINT
 }
 
@@ -70,6 +69,5 @@ TEST(Body, InvalidContentType)   // NOLINT
 
     Request req;
     req.headers.emplace("Content-Type", "application/jpeg");
-    req.body = nhope::StringReader::create(ao, nlohmann::to_string(json(etalon)));
     EXPECT_THROW(royalbed::common::extractBodyType(req.headers), HttpError);   // NOLINT
 }

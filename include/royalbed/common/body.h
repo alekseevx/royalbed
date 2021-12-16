@@ -4,6 +4,7 @@
 #include <memory>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -11,6 +12,7 @@
 #include "nhope/async/future.h"
 #include "nhope/io/io-device.h"
 
+#include "nhope/utils/noncopyable.h"
 #include "royalbed/common/detail/traits.h"
 #include "royalbed/common/http-error.h"
 #include "royalbed/common/http-status.h"
@@ -27,14 +29,20 @@ enum class BodyType
 BodyType extractBodyType(const Headers& headers);
 
 template<typename T, BodyType B = BodyType::Json>
-class Body final
+class Body final : public nhope::Noncopyable
 {
 public:
     using Type = T;
 
-    Body(const Body<T>& b)
-      : m_data(b.m_data)
+    Body(Body<T>&& b) noexcept
+      : m_data(std::move(b.m_data))
     {}
+
+    Body& operator=(Body<T>&& b) noexcept
+    {
+        m_data = std::move(b.m_data);
+        return *this;
+    }
 
     Body(T val)
       : m_data(std::move(val))
