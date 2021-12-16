@@ -80,12 +80,12 @@ auto constructParams(Params&&... p)
 template<BodyTypename BType, typename Type>
 auto initParam(RequestContext& ctx, const BType& body)
 {
-    if constexpr (common::isBody<Type>) {
+    if constexpr (common::isBody<std::decay_t<Type>>) {
         return Type(body);   // call copy constructor
     } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
         return Type(ctx);
     } else {
-        return Type{};
+        return Type();
     }
 }
 
@@ -152,7 +152,7 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
 
     return [handler = std::move(handler), bodyIndex](RequestContext& ctx) {
         if constexpr (paramHasBody) {
-            using BType = typename FnProps::template ArgumentType<bodyIndex>;
+            using BType = std::decay_t<typename FnProps::template ArgumentType<bodyIndex>>;
             if (common::extractBodyType(ctx.request.headers) != BType::type()) {
                 throw HttpError(HttpStatus::BadRequest, "request body has incompatible content type");
             }

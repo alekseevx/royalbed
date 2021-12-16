@@ -175,7 +175,7 @@ TEST(Session, MiddlewaresAndHandler)   // NOLINT
 TEST(Session, ExceptionInHandler)   // NOLINT
 {
     auto router = Router();
-    router.get("/path", []() -> nhope::Future<void> {
+    router.get("/path", [] {
         throw HttpError(HttpStatus::BadRequest, "XXX");
     });
 

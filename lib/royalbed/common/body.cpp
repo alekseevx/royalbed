@@ -19,11 +19,6 @@ const auto content = "Content-Type"s;
 
 }   // namespace
 
-nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData)
-{
-    return nlohmann::json::parse(bodyData.begin(), bodyData.end());
-}
-
 BodyType extractBodyType(const Headers& headers)
 {
     const auto& contentType = headers.at(content);

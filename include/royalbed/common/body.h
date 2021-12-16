@@ -73,10 +73,14 @@ static constexpr bool isBody<Body<T, BodyType::Plain>> = true;
 template<typename T>
 static constexpr bool isBody<Body<T, BodyType::Xml>> = true;
 
-nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData);
+template<typename T>
+struct IsBodyType
+{
+    static constexpr bool value = common::isBody<std::decay_t<T>>;
+};
 
 template<typename T>
-Body<T> parseBody(const Headers& /*req*/, const std::vector<std::uint8_t>& rawBody)
+Body<T> parseBody(const Headers& /*headers*/, const std::vector<std::uint8_t>& rawBody)
 {
     if constexpr (!detail::canDeserializeJson<T>) {
         static_assert(!std::is_same_v<T, T>, "T cannot be retrived from json."
@@ -86,9 +90,7 @@ Body<T> parseBody(const Headers& /*req*/, const std::vector<std::uint8_t>& rawBo
 
     try {
         // TODO parse content
-        // const BodyType bodyType = extractBodyType(req);
-
-        const auto jsonValue = getJson(rawBody);
+        const auto jsonValue = nlohmann::json::parse(rawBody.begin(), rawBody.end());
         return jsonValue.get<T>();
 
     } catch (const std::exception& ex) {
@@ -96,12 +98,6 @@ Body<T> parseBody(const Headers& /*req*/, const std::vector<std::uint8_t>& rawBo
         throw HttpError(HttpStatus::BadRequest, message);
     }
 }
-
-template<typename T>
-struct IsBodyType
-{
-    static constexpr bool value = common::isBody<T>;
-};
 
 }   // namespace royalbed::common
 
