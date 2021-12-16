@@ -10,7 +10,15 @@
 #include <royalbed/common/http-status.h>
 
 namespace royalbed::common {
-using namespace std::string_view_literals;
+namespace {
+
+using namespace std::literals;
+constexpr auto jsonContent{"application/json"sv};
+constexpr auto plainContent{"text/plain"sv};
+constexpr auto streamContent{"application/octet-stream"sv};
+const auto content = "Content-Type"s;
+
+}   // namespace
 
 nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData)
 {
@@ -19,17 +27,17 @@ nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData)
 
 BodyType extractBodyType(common::Request& req)
 {
-    const auto contentType = req.headers.at("Content-Type");
-    if (contentType == "application/json"sv) {
+    const auto contentType = req.headers.at(content);
+    if (contentType == jsonContent) {
         return BodyType::Json;
     }
-    if (contentType == "text/plain"sv) {
+    if (contentType == plainContent) {
         return BodyType::Plain;
     }
-    if (contentType == "application/octet-stream"sv) {
+    if (contentType == streamContent) {
         return BodyType::Stream;
     }
-    return BodyType::NoBody;
+    throw HttpError(HttpStatus::BadRequest, fmt::format("{0} \"{1}\" not supported yet", content, contentType));
 }
 
 }   // namespace royalbed::common

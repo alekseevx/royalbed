@@ -44,72 +44,32 @@ void to_json(nlohmann::json& json, const TestStruct& value)
 
 }   // namespace
 
-// TEST(Body, ValidBody)   // NOLINT
-// {
-//     const TestStruct etalon = {100, "text text"};
+TEST(Body, ValidBody)   // NOLINT
+{
+    const TestStruct etalon = {100, "text text"};
+    auto body = Body<TestStruct>(etalon);
+    EXPECT_EQ(body.get(), etalon);
+}
 
-//     nhope::ThreadExecutor th;
-//     nhope::AOContext ao(th);
+TEST(Body, InvalidBody)   // NOLINT
+{
+    nhope::ThreadExecutor th;
+    nhope::AOContext ao(th);
 
-//     Request req;
-//     req.headers.emplace("Content-Type", "application/json");
-//     req.body = nhope::StringReader::create(ao, nlohmann::to_string(json(etalon)));
+    Request req;
+    req.headers.emplace("Content-Type", "application/json");
+    req.body = nhope::StringReader::create(ao, "InvalidBody");
+    EXPECT_THROW(royalbed::common::parseBody<TestStruct>(req, {1, 3, 3}), HttpError);   // NOLINT
+}
 
-//     royalbed::server::Router router;
+TEST(Body, InvalidContentType)   // NOLINT
+{
+    nhope::ThreadExecutor th;
+    nhope::AOContext ao(th);
+    const TestStruct etalon = {100, "text text"};
 
-//     royalbed::server::RequestContext reqCtx{
-//       .num = 1,
-//       .aoCtx = nhope::AOContext(ao),
-//       .log = spdlog::default_logger(),
-//       .router = router,
-//       .request = std::move(req),
-//     };
-
-//     auto body = Body<TestStruct>(reqCtx);
-//     EXPECT_EQ(body.get().get(), etalon);
-// }
-
-// TEST(Body, InvalidBody)   // NOLINT
-// {
-//     nhope::ThreadExecutor th;
-//     nhope::AOContext ao(th);
-
-//     Request req;
-//     req.headers.emplace("Content-Type", "application/json");
-//     req.body = nhope::StringReader::create(ao, "InvalidBody");
-
-//     royalbed::server::Router router;
-
-//     royalbed::server::RequestContext reqCtx{
-//       .num = 1,
-//       .aoCtx = nhope::AOContext(ao),
-//       .log = spdlog::default_logger(),
-//       .router = router,
-//       .request = std::move(req),
-//     };
-
-//     EXPECT_THROW(Body<TestStruct>(reqCtx).get().get(), HttpError);   // NOLINT
-// }
-
-// TEST(Body, InvalidContentType)   // NOLINT
-// {
-//     nhope::ThreadExecutor th;
-//     nhope::AOContext ao(th);
-//     const TestStruct etalon = {100, "text text"};
-
-//     Request req;
-//     req.headers.emplace("Content-Type", "application/jpeg");
-//     req.body = nhope::StringReader::create(ao, nlohmann::to_string(json(etalon)));
-
-//     royalbed::server::Router router;
-
-//     royalbed::server::RequestContext reqCtx{
-//       .num = 1,
-//       .aoCtx = nhope::AOContext(ao),
-//       .log = spdlog::default_logger(),
-//       .router = router,
-//       .request = std::move(req),
-//     };
-
-//     EXPECT_THROW(Body<TestStruct>(reqCtx).get().get(), HttpError);   // NOLINT
-// }
+    Request req;
+    req.headers.emplace("Content-Type", "application/jpeg");
+    req.body = nhope::StringReader::create(ao, nlohmann::to_string(json(etalon)));
+    EXPECT_THROW(Body<TestStruct>::check(req), HttpError);   // NOLINT
+}

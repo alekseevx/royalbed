@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+#include <cstddef>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -34,6 +36,14 @@ constexpr bool checkFunctionArgs(std::index_sequence<I...> /*unused*/)
     return ((isRequstHandlerArg<std::decay_t<typename FnProps::template ArgumentType<I>>>)&&...);
 }
 
+template<typename T>
+struct IsBodyType
+{
+    static constexpr bool value = common::isBody<T>;
+};
+
+void addContent(RequestContext& ctx, std::string content);
+
 template<typename R>
 constexpr void checkRequestHandlerResult()
 {
@@ -53,6 +63,13 @@ constexpr void checkRequestHandler()
                   "\tParam <royalbed/server/param.h>)"
                   "\tBody <royalbed/common/body.h>");
     using R = typename FnProps::ReturnType;
+
+    constexpr int bodyIndex = nhope::findArgument<FnProps, IsBodyType>();
+    if constexpr (bodyIndex != -1) {
+        constexpr int invalidIndex = nhope::findArgument<FnProps, IsBodyType, bodyIndex + 1>();
+        static_assert(invalidIndex == -1, "The handler must have only one body");
+    }
+
     if constexpr (isFuture<R>) {
         checkRequestHandlerResult<typename R::Type>();
     } else {
@@ -70,7 +87,7 @@ template<BodyTypename BType, typename Type>
 auto initParam(RequestContext& ctx, const BType& body)
 {
     if constexpr (common::isBody<Type>) {
-        return Type(body);
+        return Type(body);   // call copy constructor
     } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
         return Type(ctx);
     } else {
@@ -93,20 +110,39 @@ auto callPrivateHandler(RequestContext& ctx, const BodyT& body, Handler&& handle
     }
 }
 
-void addContent(RequestContext& ctx, std::string content);
-
-template<typename Handler, std::size_t... IArg>
-constexpr bool checkParamHasBody(std::index_sequence<IArg...> /*unused*/)
+template<typename Handler, BodyTypename BodyT>
+nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, const BodyT& body)
 {
-    using FnProps = nhope::FunctionProps<Handler>;
-    return ((common::isBody<std::decay_t<typename FnProps::template ArgumentType<IArg>>>) || ...);
+    using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    using R = typename FnProps::ReturnType;
+
+    if constexpr (std::is_void_v<R>) {
+        callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+    } else {
+        R result = callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+        if constexpr (nhope::isFuture<R>) {
+            using FR = typename R::Type;
+            if constexpr (std::is_void_v<FR>) {
+                return result;
+            } else {
+                return result.then(ctx.aoCtx, [&ctx](FR v) mutable {
+                    addContent(ctx, nlohmann::to_string(nlohmann::json(v)));
+                });
+            }
+        } else {
+            addContent(ctx, nlohmann::to_string(nlohmann::json(result)));
+        }
+    }
+    return nhope::makeReadyFuture();
 }
 
-template<typename Handler>
-constexpr bool paramHasBody()
+template<typename Handler, BodyTypename BodyT>
+nhope::Future<void> fetchBodyAndCallHandler(Handler handler, RequestContext& ctx)
 {
-    using FnProps = nhope::FunctionProps<Handler>;
-    return checkParamHasBody<Handler>(std::make_index_sequence<FnProps::argumentCount>{});
+    return nhope::readAll(*ctx.request.body).then(ctx.aoCtx, [&ctx, &handler](const auto& rawBody) {
+        const auto body = common::parseBody<typename BodyT::Type>(ctx.request, rawBody);
+        return callHandler(handler, ctx, body);
+    });
 }
 
 template<typename Handler>
@@ -116,30 +152,19 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using R = typename FnProps::ReturnType;
 
-    return [handler = std::move(handler)](RequestContext& ctx) mutable {
-        return nhope::readAll(*ctx.request.body)
-          .then(ctx.aoCtx, [&ctx, handler = std::move(handler)](const auto& rawBody) mutable {
-              auto body = common::Body<int>(12);   // common::parseBody(ctx, rawBody);
+    constexpr int bodyIndex = nhope::findArgument<FnProps, IsBodyType>();
+    constexpr bool paramHasBody = bodyIndex != -1;
 
-              if constexpr (std::is_void_v<R>) {
-                  callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
-              } else {
-                  R result = callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
-                  if constexpr (nhope::isFuture<R>) {
-                      using FR = typename R::Type;
-                      if constexpr (std::is_void_v<FR>) {
-                          return result;
-                      } else {
-                          return result.then(ctx.aoCtx, [&ctx](auto v) mutable {
-                              addContent(ctx, nlohmann::to_string(nlohmann::json(v)));
-                          });
-                      }
-                  } else {
-                      addContent(ctx, nlohmann::to_string(nlohmann::json(result)));
-                  }
-              }
-              return;
-          });
+    static common::Body<char> stubBody('0');
+
+    return [handler = std::move(handler)](RequestContext& ctx) {
+        if constexpr (paramHasBody) {
+            using BType = typename FnProps::template ArgumentType<bodyIndex>;
+            BType::check(ctx);
+            return fetchBodyAndCallHandler(handler, ctx);
+        } else {
+            return callHandler(handler, ctx, stubBody);
+        }
     };
 }
 

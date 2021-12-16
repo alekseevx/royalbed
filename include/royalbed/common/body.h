@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <memory>
+#include <string_view>
 #include <type_traits>
 
 #include <fmt/core.h>
@@ -22,21 +23,35 @@ enum class BodyType
     Json,
     Xml,
     Plain,
-    Stream,
-    NoBody
+    Stream
 };
+BodyType extractBodyType(Request& req);
 
-template<typename T>
+template<typename T, BodyType B = BodyType::Json>
 class Body final
 {
 public:
+    using Type = T;
+
     Body(const Body<T>& b)
       : m_data(b.m_data)
     {}
 
     Body(T val)
-      : m_data(val)
+      : m_data(std::move(val))
     {}
+
+    static BodyType constexpr type()
+    {
+        return B;
+    }
+
+    static void check(Request& req)
+    {
+        if (extractBodyType(req) != B) {
+            throw HttpError(HttpStatus::BadRequest, "request body has incompatible content type");
+        }
+    }
 
     const T& operator*() const
     {
@@ -57,20 +72,21 @@ private:
     T m_data;
 };
 
-struct NoneBody
-{};
-
-BodyType extractBodyType(Request& req);
-
 template<typename T>
 static constexpr bool isBody = false;
 template<typename T>
-static constexpr bool isBody<Body<T>> = true;
+static constexpr bool isBody<Body<T, BodyType::Json>> = true;
+template<typename T>
+static constexpr bool isBody<Body<T, BodyType::Plain>> = true;
+template<typename T>
+static constexpr bool isBody<Body<T, BodyType::Stream>> = true;
+template<typename T>
+static constexpr bool isBody<Body<T, BodyType::Xml>> = true;
 
 nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData);
 
 template<typename T>
-Body<T> parseBody(Request& req, const std::vector<std::uint8_t>& rawBody)
+Body<T> parseBody(Request& /*req*/, const std::vector<std::uint8_t>& rawBody)
 {
     if constexpr (!detail::canDeserializeJson<T>) {
         static_assert(!std::is_same_v<T, T>, "T cannot be retrived from json."
@@ -78,14 +94,13 @@ Body<T> parseBody(Request& req, const std::vector<std::uint8_t>& rawBody)
                                              "See https://github.com/nlohmann/json#basic-usage");
     }
 
-    // auto bodyType = extractBodyType(req);
-    // if (bodyType == BodyType::NoBody) {
-    //     return Body<NoneBody>{};
-    // }
-
     try {
+        // TODO parse content
+        // const BodyType bodyType = extractBodyType(req);
+
         const auto jsonValue = getJson(rawBody);
         return jsonValue.get<T>();
+
     } catch (const std::exception& ex) {
         const auto message = fmt::format("Failed to parse request body: {}", ex.what());
         throw HttpError(HttpStatus::BadRequest, message);
