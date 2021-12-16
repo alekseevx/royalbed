@@ -132,9 +132,9 @@ TEST(StaticFiles, getFiles)   // NOLINT
     for (const auto& rec : testRecs) {
         RequestContext reqCtx{
           .num = 1,
-          .aoCtx = nhope::AOContext(aoCtx),
           .log = spdlog::default_logger(),
           .router = router,
+          .aoCtx = nhope::AOContext(aoCtx),
         };
         router.route("GET", rec.path).handler(reqCtx).get();
 
@@ -153,13 +153,9 @@ TEST(Swagger, Api)   // NOLINT
 {
     nhope::ThreadExecutor th;
     nhope::AOContext aoCtx(th);
-    Router router;
+    Router router{};
     RequestContext reqCtx{
-      .num = 1,
-      .aoCtx = nhope::AOContext(aoCtx),
-      .log = spdlog::default_logger(),
-      .router = router,
-    };
+      .num = 1, .log = spdlog::default_logger(), .router = router, .aoCtx = nhope::AOContext(aoCtx)};
 
     swagger(router, testFs(), "folder2/openapi.yml");
 

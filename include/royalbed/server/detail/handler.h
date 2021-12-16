@@ -36,12 +36,6 @@ constexpr bool checkFunctionArgs(std::index_sequence<I...> /*unused*/)
     return ((isRequstHandlerArg<std::decay_t<typename FnProps::template ArgumentType<I>>>)&&...);
 }
 
-template<typename T>
-struct IsBodyType
-{
-    static constexpr bool value = common::isBody<T>;
-};
-
 void addContent(RequestContext& ctx, std::string content);
 
 template<typename R>
@@ -64,9 +58,9 @@ constexpr void checkRequestHandler()
                   "\tBody <royalbed/common/body.h>");
     using R = typename FnProps::ReturnType;
 
-    constexpr int bodyIndex = nhope::findArgument<FnProps, IsBodyType>();
+    constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
     if constexpr (bodyIndex != -1) {
-        constexpr int invalidIndex = nhope::findArgument<FnProps, IsBodyType, bodyIndex + 1>();
+        constexpr int invalidIndex = nhope::findArgument<FnProps, common::IsBodyType, bodyIndex + 1>();
         static_assert(invalidIndex == -1, "The handler must have only one body");
     }
 
@@ -96,8 +90,7 @@ auto initParam(RequestContext& ctx, const BType& body)
 }
 
 template<typename Handler, BodyTypename BodyT, std::size_t... IArg>
-auto callPrivateHandler(RequestContext& ctx, const BodyT& body, Handler&& handler,
-                        std::index_sequence<IArg...> /*unused*/)
+auto callUserHandler(RequestContext& ctx, const BodyT& body, Handler&& handler, std::index_sequence<IArg...> /*unused*/)
 {
     using namespace nhope;
     using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
@@ -117,9 +110,9 @@ nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, const Bo
     using R = typename FnProps::ReturnType;
 
     if constexpr (std::is_void_v<R>) {
-        callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+        callUserHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
     } else {
-        R result = callPrivateHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
+        R result = callUserHandler(ctx, body, handler, std::make_index_sequence<FnProps::argumentCount>{});
         if constexpr (nhope::isFuture<R>) {
             using FR = typename R::Type;
             if constexpr (std::is_void_v<FR>) {
@@ -140,7 +133,7 @@ template<typename Handler, BodyTypename BodyT>
 nhope::Future<void> fetchBodyAndCallHandler(Handler handler, RequestContext& ctx)
 {
     return nhope::readAll(*ctx.request.body).then(ctx.aoCtx, [&ctx, &handler](const auto& rawBody) {
-        const auto body = common::parseBody<typename BodyT::Type>(ctx.request, rawBody);
+        const auto body = common::parseBody<typename BodyT::Type>(ctx.request.headers, rawBody);
         return callHandler(handler, ctx, body);
     });
 }
@@ -152,16 +145,18 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using R = typename FnProps::ReturnType;
 
-    constexpr int bodyIndex = nhope::findArgument<FnProps, IsBodyType>();
+    constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
     constexpr bool paramHasBody = bodyIndex != -1;
 
     static common::Body<char> stubBody('0');
 
-    return [handler = std::move(handler)](RequestContext& ctx) {
+    return [handler = std::move(handler), bodyIndex](RequestContext& ctx) {
         if constexpr (paramHasBody) {
             using BType = typename FnProps::template ArgumentType<bodyIndex>;
-            BType::check(ctx);
-            return fetchBodyAndCallHandler(handler, ctx);
+            if (common::extractBodyType(ctx.request.headers) != BType::type()) {
+                throw HttpError(HttpStatus::BadRequest, "request body has incompatible content type");
+            }
+            return fetchBodyAndCallHandler<Handler, BType>(handler, ctx);
         } else {
             return callHandler(handler, ctx, stubBody);
         }

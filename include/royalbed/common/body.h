@@ -14,7 +14,7 @@
 #include "royalbed/common/detail/traits.h"
 #include "royalbed/common/http-error.h"
 #include "royalbed/common/http-status.h"
-#include "royalbed/common/request.h"
+#include "royalbed/common/headers.h"
 
 namespace royalbed::common {
 
@@ -22,10 +22,9 @@ enum class BodyType
 {
     Json,
     Xml,
-    Plain,
-    Stream
+    Plain
 };
-BodyType extractBodyType(Request& req);
+BodyType extractBodyType(const Headers& headers);
 
 template<typename T, BodyType B = BodyType::Json>
 class Body final
@@ -44,13 +43,6 @@ public:
     static BodyType constexpr type()
     {
         return B;
-    }
-
-    static void check(Request& req)
-    {
-        if (extractBodyType(req) != B) {
-            throw HttpError(HttpStatus::BadRequest, "request body has incompatible content type");
-        }
     }
 
     const T& operator*() const
@@ -79,14 +71,12 @@ static constexpr bool isBody<Body<T, BodyType::Json>> = true;
 template<typename T>
 static constexpr bool isBody<Body<T, BodyType::Plain>> = true;
 template<typename T>
-static constexpr bool isBody<Body<T, BodyType::Stream>> = true;
-template<typename T>
 static constexpr bool isBody<Body<T, BodyType::Xml>> = true;
 
 nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData);
 
 template<typename T>
-Body<T> parseBody(Request& /*req*/, const std::vector<std::uint8_t>& rawBody)
+Body<T> parseBody(const Headers& /*req*/, const std::vector<std::uint8_t>& rawBody)
 {
     if constexpr (!detail::canDeserializeJson<T>) {
         static_assert(!std::is_same_v<T, T>, "T cannot be retrived from json."
@@ -106,6 +96,12 @@ Body<T> parseBody(Request& /*req*/, const std::vector<std::uint8_t>& rawBody)
         throw HttpError(HttpStatus::BadRequest, message);
     }
 }
+
+template<typename T>
+struct IsBodyType
+{
+    static constexpr bool value = common::isBody<T>;
+};
 
 }   // namespace royalbed::common
 

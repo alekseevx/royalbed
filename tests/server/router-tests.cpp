@@ -402,9 +402,9 @@ TEST(Router, HightLevelHandler)   // NOLINT
 
     RequestContext ctx{
       .num = 1,
-      .aoCtx = nhope::AOContext(th),
       .router = router,
       .rawPathParams = {{"val", "40"}},
+      .aoCtx = nhope::AOContext(th),
     };
     {
         router.route("GET", "/some/40").handler(ctx).get();

@@ -15,7 +15,6 @@ namespace {
 using namespace std::literals;
 constexpr auto jsonContent{"application/json"sv};
 constexpr auto plainContent{"text/plain"sv};
-constexpr auto streamContent{"application/octet-stream"sv};
 const auto content = "Content-Type"s;
 
 }   // namespace
@@ -25,17 +24,14 @@ nlohmann::json getJson(const std::vector<std::uint8_t>& bodyData)
     return nlohmann::json::parse(bodyData.begin(), bodyData.end());
 }
 
-BodyType extractBodyType(common::Request& req)
+BodyType extractBodyType(const Headers& headers)
 {
-    const auto contentType = req.headers.at(content);
+    const auto& contentType = headers.at(content);
     if (contentType == jsonContent) {
         return BodyType::Json;
     }
     if (contentType == plainContent) {
         return BodyType::Plain;
-    }
-    if (contentType == streamContent) {
-        return BodyType::Stream;
     }
     throw HttpError(HttpStatus::BadRequest, fmt::format("{0} \"{1}\" not supported yet", content, contentType));
 }
