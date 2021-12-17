@@ -5,6 +5,7 @@
 
 #include "gtest/gtest.h"
 
+#include "nhope/async/event.h"
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context-close-handler.h"
@@ -31,22 +32,20 @@ using namespace royalbed::server;
 using namespace royalbed::server::detail;
 
 class WaitingForFinished final : public SessionCallback
-
 {
 public:
     void sessionFinished(bool /*keepAlive*/) override
     {
-        m_promise.setValue();
+        m_event.set();
     }
 
     bool wait(std::chrono::nanoseconds timeout)
     {
-        return m_future.waitFor(timeout);
+        return m_event.waitFor(timeout);
     }
 
 private:
-    nhope::Promise<void> m_promise;
-    nhope::Future<void> m_future = m_promise.future();
+    nhope::Event m_event;
 };
 
 nhope::PushbackReaderPtr inputStream(nhope::AOContext& aoCtx, std::string request)

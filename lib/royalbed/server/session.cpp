@@ -138,7 +138,7 @@ private:
 
         const auto& middleware = m_middlewares.front();
         return safeCall(m_requestCtx, middleware).then(aoCtx(), [this](bool doNext) {
-            assert(!m_middlewares.empty());
+            assert(!m_middlewares.empty());   // NOLINT
 
             m_middlewares.pop_front();
             if (!doNext) {
@@ -187,8 +187,8 @@ private:
     {
         assert(!m_finished);   // NOLINT
 
-        m_callback.sessionFinished(keepAlive);
         m_finished = true;
+        m_callback.sessionFinished(keepAlive);
     }
 
     nhope::AOContext& aoCtx()
