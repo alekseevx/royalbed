@@ -1,16 +1,27 @@
 #include <set>
 #include <string>
+#include <type_traits>
 #include <typeinfo>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 
+#include "nhope/async/ao-context.h"
 #include "nhope/async/future.h"
+#include "nhope/async/thread-executor.h"
+#include "nhope/io/io-device.h"
+#include "nhope/io/string-reader.h"
+#include "nhope/utils/type.h"
 
+#include "nlohmann/json.hpp"
+#include "royalbed/common/body.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
+#include "royalbed/server/request.h"
 #include "royalbed/server/router.h"
+#include "royalbed/server/param.h"
 
 namespace {
 
@@ -376,4 +387,67 @@ TEST(Router, AllowMethods)   // NOLINT
     EXPECT_EQ(toSet(router.allowMethods("/path1/path2")), std::set({"PATCH"s, "OPTIONS"s}));
     EXPECT_EQ(toSet(router.allowMethods("/path1/path2/path3")), std::set({"HEAD"s}));
     EXPECT_EQ(toSet(router.allowMethods("/path1/path2/path3/path4")), std::set<std::string>());
+}
+
+TEST(Router, HightLevelHandler)   // NOLINT
+{
+    Router router;
+
+    using intP = Param<int, "val">;
+    router.get("/some/:val", [](const intP& p) {
+        return p.get() + 2;
+    });
+
+    router.get("/some/", [] {
+        return "42";
+    });
+
+    nhope::ThreadExecutor th;
+
+    RequestContext ctx{
+      .num = 1,
+      .router = router,
+      .rawPathParams = {{"val", "40"}},
+      .aoCtx = nhope::AOContext(th),
+    };
+    {
+        router.route("GET", "/some/40").handler(ctx).get();
+        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto json = nlohmann::json::parse(body.begin(), body.end());
+        EXPECT_EQ(json.get<int>(), 42);
+    }
+    {
+        router.route("GET", "/some").handler(ctx).get();
+        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto json = nlohmann::json::parse(body.begin(), body.end());
+        EXPECT_EQ(json.get<std::string>(), "42");
+    }
+}
+
+TEST(Router, BodyHandler)   // NOLINT
+{
+    Router router;
+
+    constexpr bool x = royalbed::common::isBody<std::decay_t<const royalbed::common::Body<int>&>>;
+
+    router.get("/some/", [](const royalbed::common::Body<int>& body) {
+        return body.get() + 2;
+    });
+
+    nhope::ThreadExecutor th;
+    nhope::AOContext ao(th);
+    Request req;
+    req.body = nhope::StringReader::create(ao, "2");
+    req.headers.emplace("Content-type", "application/json");
+
+    RequestContext ctx{
+      .num = 1,
+      .router = router,
+      .request = std::move(req),
+      .aoCtx = nhope::AOContext(th),
+    };
+    router.route("GET", "/some").handler(ctx).get();
+    const auto body = nhope::readAll(*ctx.responce.body).get();
+    const auto json = nlohmann::json::parse(body.begin(), body.end());
+    EXPECT_EQ(json.get<int>(), 4);
 }

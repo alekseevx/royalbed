@@ -153,13 +153,9 @@ TEST(Swagger, Api)   // NOLINT
 {
     nhope::ThreadExecutor th;
     nhope::AOContext aoCtx(th);
-    Router router;
+    Router router{};
     RequestContext reqCtx{
-      .num = 1,
-      .log = spdlog::default_logger(),
-      .router = router,
-      .aoCtx = nhope::AOContext(aoCtx),
-    };
+      .num = 1, .log = spdlog::default_logger(), .router = router, .aoCtx = nhope::AOContext(aoCtx)};
 
     swagger(router, testFs(), "folder2/openapi.yml");
 

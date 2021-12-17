@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include "nhope/async/ao-context.h"
@@ -12,6 +13,7 @@
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
+#include "royalbed/server/detail/handler.h"
 
 namespace royalbed::server {
 
@@ -50,6 +52,42 @@ public:
 
     [[nodiscard]] RouteResult route(std::string_view method, std::string_view path) const;
     [[nodiscard]] std::vector<std::string> allowMethods(std::string_view path) const;
+
+    template<HightLevelHandler Handler>
+    Router& get(std::string_view resource, Handler&& handler)
+    {
+        return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& post(std::string_view resource, Handler&& handler)
+    {
+        return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& put(std::string_view resource, Handler&& handler)
+    {
+        return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& patch(std::string_view resource, Handler&& handler)
+    {
+        return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& options(std::string_view resource, Handler&& handler)
+    {
+        return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& head(std::string_view resource, Handler&& handler)
+    {
+        return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
 
 private:
     Router& addRoute(std::string_view method, std::string_view resource, LowLevelHandler handler);
