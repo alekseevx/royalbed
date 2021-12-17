@@ -5,7 +5,6 @@
 #include <exception>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -79,11 +78,10 @@ auto constructParams(Params&&... p)
 }
 
 template<BodyTypename BType, typename Type>
-auto initParam(RequestContext& ctx, std::optional<BType>& body)
+auto initParam(RequestContext& ctx, BType& body)
 {
     if constexpr (common::isBody<std::decay_t<Type>>) {
-        assert(body.has_value());         // NOLINT
-        return BType(std::move(*body));   // call move constructor
+        return BType(std::move(body));   // call move constructor
     } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
         return Type(ctx);
     } else {
@@ -92,8 +90,7 @@ auto initParam(RequestContext& ctx, std::optional<BType>& body)
 }
 
 template<typename Handler, BodyTypename BodyT, std::size_t... IArg>
-auto callUserHandler(RequestContext& ctx, std::optional<BodyT>&& body, Handler&& handler,
-                     std::index_sequence<IArg...> /*unused*/)
+auto callUserHandler(RequestContext& ctx, BodyT&& body, Handler&& handler, std::index_sequence<IArg...> /*unused*/)
 {
     using namespace nhope;
     using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
@@ -107,7 +104,7 @@ auto callUserHandler(RequestContext& ctx, std::optional<BodyT>&& body, Handler&&
 }
 
 template<typename Handler, BodyTypename BodyT>
-nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, std::optional<BodyT>&& body)
+nhope::Future<void> callHandler(Handler&& handler, RequestContext& ctx, BodyT&& body)
 {
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
     using R = typename FnProps::ReturnType;
@@ -140,7 +137,7 @@ nhope::Future<void> fetchBodyAndCallHandler(Handler handler, RequestContext& ctx
     return nhope::readAll(*ctx.request.body)
       .then(ctx.aoCtx, [&ctx, handler = std::move(handler)](const auto& rawBody) mutable {
           BodyT body = common::parseBody<typename BodyT::Type>(ctx.request.headers, rawBody);
-          return callHandler(std::move(handler), ctx, std::optional<BodyT>(std::move(body)));
+          return callHandler(std::move(handler), ctx, std::move(body));
       });
 }
 
@@ -162,7 +159,7 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
             }
             return fetchBodyAndCallHandler<Handler, BType>(handler, ctx);
         } else {
-            return callHandler(handler, ctx, std::optional<common::Body<char>>{std::nullopt});
+            return callHandler(handler, ctx, common::NoneBody());
         }
     };
 }

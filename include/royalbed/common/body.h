@@ -5,6 +5,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -71,6 +72,11 @@ public:
 private:
     T m_data;
 };
+template<>
+class Body<std::monostate>
+{};
+
+using NoneBody = Body<std::monostate>;
 
 template<typename T>
 static constexpr bool isBody = false;
