@@ -30,12 +30,13 @@ private:
     nhope::AOContext m_aoCtx;
 };
 
-class SlowReader final : public nhope::Reader
+class SlowIODevice final : public nhope::IODevice
 {
 public:
-    explicit SlowReader(nhope::AOContext& parent)
+    explicit SlowIODevice(nhope::AOContext& parent)
       : m_aoCtx(parent)
     {}
+
     void read(gsl::span<std::uint8_t> buf, nhope::IOHandler handler) override
     {
         using namespace std::literals;
@@ -45,9 +46,18 @@ public:
         });
     }
 
-    static nhope::ReaderPtr create(nhope::AOContext& parent)
+    void write(gsl::span<const std::uint8_t> data, nhope::IOHandler handler) override
     {
-        return std::make_unique<SlowReader>(parent);
+        using namespace std::literals;
+
+        nhope::setTimeout(m_aoCtx, 60min, [handler, n = data.size()](auto) {
+            handler(nullptr, n);
+        });
+    }
+
+    static nhope::IODevicePtr create(nhope::AOContext& parent)
+    {
+        return std::make_unique<SlowIODevice>(parent);
     }
 
 private:
@@ -72,31 +82,6 @@ public:
     static nhope::WritterPtr create(nhope::AOContext& parent)
     {
         return std::make_unique<IOErrorWritter>(parent);
-    }
-
-private:
-    nhope::AOContext m_aoCtx;
-};
-
-class SlowWritter final : public nhope::Writter
-{
-public:
-    explicit SlowWritter(nhope::AOContext& parent)
-      : m_aoCtx(parent)
-    {}
-
-    void write(gsl::span<const std::uint8_t> data, nhope::IOHandler handler) override
-    {
-        using namespace std::literals;
-
-        nhope::setTimeout(m_aoCtx, 60min, [handler, n = data.size()](auto) {
-            handler(nullptr, n);
-        });
-    }
-
-    static nhope::WritterPtr create(nhope::AOContext& parent)
-    {
-        return std::make_unique<SlowWritter>(parent);
     }
 
 private:

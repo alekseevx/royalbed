@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -31,10 +32,22 @@ using namespace std::literals;
 using namespace royalbed::server;
 using namespace royalbed::server::detail;
 
-class WaitingForFinished final : public SessionCallback
+class TestSessionCtx final : public SessionCtx
 {
 public:
-    void sessionFinished(bool /*keepAlive*/) override
+    explicit TestSessionCtx(Router&& router)
+      : m_router(std::move(router))
+    {}
+
+    Router& router() noexcept override
+    {
+        return m_router;
+    }
+
+    void sessionReceivedRequest(std::uint32_t /*sessionNum*/) noexcept override
+    {}
+
+    void sessionFinished(std::uint32_t /*sessionNum*/, bool /*success*/) noexcept override
     {
         m_event.set();
     }
@@ -45,6 +58,7 @@ public:
     }
 
 private:
+    Router m_router;
     nhope::Event m_event;
 };
 
@@ -70,20 +84,19 @@ TEST(Session, OnlyHandler)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
     auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
     EXPECT_EQ(responce, "HTTP/1.1 200 OK\r\n\r\n");
@@ -111,20 +124,19 @@ TEST(Session, OnlyMiddlewares)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
     auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 
     EXPECT_EQ(middlewareCounter, 2);
     EXPECT_EQ(handlerCounter, 0);
@@ -152,20 +164,19 @@ TEST(Session, MiddlewaresAndHandler)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
     auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 
     EXPECT_EQ(middlewareCounter, 2);
     EXPECT_EQ(handlerCounter, 1);
@@ -180,20 +191,19 @@ TEST(Session, ExceptionInHandler)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
     auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
     EXPECT_EQ(responce, "HTTP/1.1 400 XXX\r\n\r\n");
@@ -214,20 +224,19 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
     auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
     EXPECT_TRUE(responce.find("HTTP/1.1 500 Internal Server Error") != std::string::npos);
@@ -239,22 +248,21 @@ TEST(Session, Close)   // NOLINT
 
     auto executor = nhope::ThreadExecutor();
     auto aoCtx = nhope::AOContext(executor);
-    WaitingForFinished waitingForFinished;
+    TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = nhope::PushbackReader::create(aoCtx, SlowReader::create(aoCtx));
+    auto in = nhope::PushbackReader::create(aoCtx, SlowIODevice::create(aoCtx));
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
                           .log = spdlog::default_logger(),
-                          .router = router,
-                          .callback = waitingForFinished,
                         });
 
-    EXPECT_FALSE(waitingForFinished.wait(20ms));
+    EXPECT_FALSE(testSessionCtx.wait(20ms));
 
     aoCtx.close();
 
-    EXPECT_TRUE(waitingForFinished.wait(1s));
+    EXPECT_TRUE(testSessionCtx.wait(1s));
 }
