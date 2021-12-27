@@ -175,7 +175,7 @@ TEST(ReceiveRequest, Cancel)   // NOLINT
       aoCtx,                                                                    //
       nhope::concat(aoCtx,                                                      //
                     nhope::StringReader::create(aoCtx, "GET /path HTTP/1.1"),   // Begining of the request header
-                    SlowReader::create(aoCtx))                                  // long reading
+                    SlowIODevice::create(aoCtx))                                // long reading
     );
 
     auto future = receiveRequest(aoCtx, *conn);
@@ -199,7 +199,7 @@ TEST(ReceiveRequest, BodyReader_Cancel)   // NOLINT
                                                        "Content-Length: 10\r\n"   //
                                                        "\r\n"                     //
                                                        "123456"),                 //
-                    SlowReader::create(aoCtx))                                    // long body reading
+                    SlowIODevice::create(aoCtx))                                  // long body reading
     );
 
     auto future = receiveRequest(aoCtx, *conn).then([](auto req) {

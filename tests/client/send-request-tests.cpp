@@ -107,7 +107,7 @@ TEST(SendRequest, Cancel)   // NOLINT
         },
     };
 
-    auto dev = SlowWritter::create(aoCtx);
+    auto dev = SlowIODevice::create(aoCtx);
 
     auto future = sendRequest(aoCtx, std::move(req), *dev);
 

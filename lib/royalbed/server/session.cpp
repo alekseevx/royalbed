@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <string>
 #include <type_traits>
@@ -47,13 +48,14 @@ class Session final : public nhope::AOContextCloseHandler
 {
 public:
     Session(nhope::AOContext& aoCtx, SessionParams&& param)
-      : m_in(param.in)
+      : m_num(param.num)
+      , m_ctx(param.ctx)
+      , m_in(param.in)
       , m_out(param.out)
-      , m_callback(param.callback)
       , m_requestCtx{
           .num = param.num,
           .log = std::move(param.log),
-          .router = param.router,
+          .router = param.ctx.router(),
           .aoCtx = nhope::AOContext(aoCtx),
         }
     {
@@ -83,7 +85,8 @@ private:
     {
         receiveRequest(m_requestCtx.aoCtx, m_in)
           .then(aoCtx(),
-                [this](auto req) {
+                [this](auto req) mutable {
+                    m_ctx.sessionReceivedRequest(m_num);
                     return this->processingRequest(std::move(req));
                 })
           .fail(aoCtx(),
@@ -96,8 +99,7 @@ private:
                 })
           .then(aoCtx(),
                 [this] {
-                    /* TODO: Support Keep-Alive */
-                    this->finished(false);
+                    this->finished(true);
                 })
           .fail(aoCtx(), [this](auto ex) {
               try {
@@ -124,9 +126,7 @@ private:
                 return nhope::makeReadyFuture();
             }
 
-            return safeCall(m_requestCtx, m_handler).then(aoCtx(), [] {
-                // Switch to my AOContext
-            });
+            return safeCall(m_requestCtx, m_handler);
         });
     }
 
@@ -178,17 +178,18 @@ private:
     nhope::Future<void> sendResponce()
     {
         m_requestCtx.log->info("responce: {}", m_requestCtx.responce.status);
-        return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then([this](auto size) {
+        return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then(aoCtx(), [this](auto size) {
             m_requestCtx.log->debug("responce has been sent: {} bytes", size);
         });
     }
 
-    void finished(bool keepAlive)
+    void finished(bool success)
     {
         assert(!m_finished);   // NOLINT
 
         m_finished = true;
-        m_callback.sessionFinished(keepAlive);
+        m_ctx.sessionFinished(m_num, success);
+        m_requestCtx.aoCtx.close();
     }
 
     nhope::AOContext& aoCtx()
@@ -196,11 +197,13 @@ private:
         return m_requestCtx.aoCtx;
     }
 
-    bool m_finished = false;
+    const std::uint32_t m_num;
+    SessionCtx& m_ctx;
 
     nhope::PushbackReader& m_in;
     nhope::Writter& m_out;
-    SessionCallback& m_callback;
+
+    bool m_finished = false;
 
     LowLevelHandler m_handler;
     std::list<Middleware> m_middlewares;
