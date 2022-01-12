@@ -82,6 +82,8 @@ auto initParam(RequestContext& ctx, BType& body)
 {
     if constexpr (common::isBody<std::decay_t<Type>>) {
         return BType(std::move(body));   // call move constructor
+    } else if constexpr (std::is_same_v<Type, RequestContext&>) {
+        return std::ref(ctx);
     } else if constexpr (std::is_constructible_v<Type, RequestContext&>) {
         return Type(ctx);
     } else {
@@ -159,7 +161,7 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
             }
             return fetchBodyAndCallHandler<Handler, BType>(handler, ctx);
         } else {
-            return callHandler(handler, ctx, common::NoneBody());
+            return callHandler(handler, ctx, common::NoneBody{});
         }
     };
 }
