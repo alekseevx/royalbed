@@ -76,7 +76,11 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
     if (filename == indexHtml) {
         // Redirect to index page
         router.get(parentPath, [resourcePath](RequestContext& ctx) {
-            ctx.responce.headers["Location"] = resourcePath;
+            auto path = ctx.request.uri.path;
+            if (!path.empty() && path.back() == '/') {
+                path.pop_back();
+            }
+            ctx.responce.headers["Location"] = fmt::format("{}/{}", path, indexHtml);
             ctx.responce.status = HttpStatus::Found;
             return nhope::makeReadyFuture();
         });
