@@ -10,6 +10,7 @@
 #include "royalbed/server/detail/connection.h"
 #include "royalbed/server/router.h"
 
+#include "helpers/logger.h"
 #include "helpers/iodevs.h"
 
 namespace {
@@ -27,7 +28,7 @@ public:
       : m_router(std::move(router))
     {}
 
-    Router& router() override
+    [[nodiscard]] const Router& router() const noexcept override
     {
         return m_router;
     }
@@ -37,7 +38,7 @@ public:
         EXPECT_EQ(etalonConnectionNum, connectionNum);
         return {
           .num = etalonSessionNum,
-          .log = spdlog::default_logger(),
+          .log = nullLogger(),
         };
     }
 
@@ -75,8 +76,8 @@ TEST(Connection, FullLiveCycle)   // NOLINT
         openConnection(aoCtx, ConnectionParams{
                                 .num = etalonConnectionNum,
                                 .ctx = ctx,
-                                .log = spdlog::default_logger(),
-                                .sock = nhope::NullDevice::create(aoCtx),
+                                .log = nullLogger(),
+                                .sock = NullSock::create(aoCtx),
                               });
     });
 
@@ -92,8 +93,8 @@ TEST(Connection, Cancel)   // NOLINT
     openConnection(aoCtx, ConnectionParams{
                             .num = etalonConnectionNum,
                             .ctx = ctx,
-                            .log = spdlog::default_logger(),
-                            .sock = SlowIODevice::create(aoCtx),
+                            .log = nullLogger(),
+                            .sock = SlowSock::create(aoCtx),
                           });
     EXPECT_FALSE(ctx.wait(20ms));
 

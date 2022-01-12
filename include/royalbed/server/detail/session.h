@@ -19,10 +19,10 @@ namespace royalbed::server::detail {
 class SessionCtx
 {
 public:
-    virtual Router& router() noexcept = 0;
+    [[nodiscard]] virtual const Router& router() const noexcept = 0;
 
     virtual void sessionReceivedRequest(std::uint32_t sessionNum) noexcept = 0;
-    virtual void sessionFinished(std::uint32_t sessionNum, bool success) noexcept = 0;
+    virtual void sessionFinished(std::uint32_t sessionNum, bool keepALive) noexcept = 0;
 };
 
 struct SessionParams

@@ -5,35 +5,13 @@
 #include "nhope/async/ao-context.h"
 #include "nhope/async/timer.h"
 #include "nhope/io/io-device.h"
+#include "nhope/io/sock-addr.h"
+#include "nhope/io/tcp.h"
 
-class IOErrorReader final : public nhope::Reader
+class SlowSock final : public nhope::TcpSocket
 {
 public:
-    explicit IOErrorReader(nhope::AOContext& parent)
-      : m_aoCtx(parent)
-    {}
-
-    void read(gsl::span<std::uint8_t> /*buf*/, nhope::IOHandler handler) override
-    {
-        m_aoCtx.exec([handler] {
-            const auto errCode = std::make_error_code(std::errc::io_error);
-            handler(std::make_exception_ptr(std::system_error(errCode)), {});
-        });
-    }
-
-    static nhope::ReaderPtr create(nhope::AOContext& parent)
-    {
-        return std::make_unique<IOErrorReader>(parent);
-    }
-
-private:
-    nhope::AOContext m_aoCtx;
-};
-
-class SlowIODevice final : public nhope::IODevice
-{
-public:
-    explicit SlowIODevice(nhope::AOContext& parent)
+    explicit SlowSock(nhope::AOContext& parent)
       : m_aoCtx(parent)
     {}
 
@@ -55,21 +33,42 @@ public:
         });
     }
 
-    static nhope::IODevicePtr create(nhope::AOContext& parent)
+    [[nodiscard]] nhope::SockAddr localAddress() const override
     {
-        return std::make_unique<SlowIODevice>(parent);
+        return nhope::SockAddr::ipv4("127.0.0.1", 1);
+    }
+
+    [[nodiscard]] nhope::SockAddr peerAddress() const override
+    {
+        return nhope::SockAddr::ipv4("127.0.0.1", 2);
+    }
+
+    void shutdown(Shutdown /*unused*/) override
+    {}
+
+    static nhope::TcpSocketPtr create(nhope::AOContext& parent)
+    {
+        return std::make_unique<SlowSock>(parent);
     }
 
 private:
     nhope::AOContext m_aoCtx;
 };
 
-class IOErrorWritter final : public nhope::Writter
+class BrokenSock final : public nhope::TcpSocket
 {
 public:
-    explicit IOErrorWritter(nhope::AOContext& parent)
+    explicit BrokenSock(nhope::AOContext& parent)
       : m_aoCtx(parent)
     {}
+
+    void read(gsl::span<std::uint8_t> /*buf*/, nhope::IOHandler handler) override
+    {
+        m_aoCtx.exec([handler] {
+            const auto errCode = std::make_error_code(std::errc::io_error);
+            handler(std::make_exception_ptr(std::system_error(errCode)), {});
+        });
+    }
 
     void write(gsl::span<const std::uint8_t> /*data*/, nhope::IOHandler handler) override
     {
@@ -79,9 +78,65 @@ public:
         });
     }
 
-    static nhope::WritterPtr create(nhope::AOContext& parent)
+    [[nodiscard]] nhope::SockAddr localAddress() const override
     {
-        return std::make_unique<IOErrorWritter>(parent);
+        return nhope::SockAddr::ipv4("127.0.0.1", 1);
+    }
+
+    [[nodiscard]] nhope::SockAddr peerAddress() const override
+    {
+        return nhope::SockAddr::ipv4("127.0.0.1", 2);
+    }
+
+    void shutdown(Shutdown /*unused*/) override
+    {}
+
+    static nhope::TcpSocketPtr create(nhope::AOContext& parent)
+    {
+        return std::make_unique<BrokenSock>(parent);
+    }
+
+private:
+    nhope::AOContext m_aoCtx;
+};
+
+class NullSock final : public nhope::TcpSocket
+{
+public:
+    explicit NullSock(nhope::AOContext& parent)
+      : m_aoCtx(parent)
+    {}
+
+    void write(gsl::span<const std::uint8_t> data, nhope::IOHandler handler) override
+    {
+        m_aoCtx.exec([this, n = data.size(), handler = std::move(handler)] {
+            handler(nullptr, n);
+        });
+    }
+
+    void read(gsl::span<std::uint8_t> /*buf*/, nhope::IOHandler handler) override
+    {
+        m_aoCtx.exec([this, handler = std::move(handler)] {
+            handler(nullptr, 0);
+        });
+    }
+
+    [[nodiscard]] nhope::SockAddr localAddress() const override
+    {
+        return nhope::SockAddr::ipv4("127.0.0.1", 1);
+    }
+
+    [[nodiscard]] nhope::SockAddr peerAddress() const override
+    {
+        return nhope::SockAddr::ipv4("127.0.0.1", 2);
+    }
+
+    void shutdown(Shutdown /*unused*/) override
+    {}
+
+    static nhope::TcpSocketPtr create(nhope::AOContext& parent)
+    {
+        return std::make_unique<BrokenSock>(parent);
     }
 
 private:

@@ -59,9 +59,11 @@ public:
           .aoCtx = nhope::AOContext(aoCtx),
         }
     {
-        this->start();
-
-        m_requestCtx.aoCtx.addCloseHandler(*this);
+        m_requestCtx.aoCtx.startCancellableTask(
+          [this] {
+              this->start();
+          },
+          *this);
     }
 
 private:
@@ -74,7 +76,7 @@ private:
     void aoContextClose() noexcept override
     {
         if (!m_finished) {
-            m_requestCtx.log->warn("session was cancelled");
+            m_requestCtx.log->info("session was cancelled");
             this->finished(false);
         }
 
@@ -178,6 +180,10 @@ private:
     nhope::Future<void> sendResponce()
     {
         m_requestCtx.log->info("responce: {}", m_requestCtx.responce.status);
+
+        // TODO: Support keep-alive
+        m_requestCtx.responce.headers["Connection"] = "close";
+
         return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then(aoCtx(), [this](auto size) {
             m_requestCtx.log->debug("responce has been sent: {} bytes", size);
         });
@@ -188,8 +194,13 @@ private:
         assert(!m_finished);   // NOLINT
 
         m_finished = true;
-        m_ctx.sessionFinished(m_num, success);
+
+        const auto num = m_num;
+        auto& ctx = m_ctx;
+
         m_requestCtx.aoCtx.close();
+
+        ctx.sessionFinished(num, success);
     }
 
     nhope::AOContext& aoCtx()
