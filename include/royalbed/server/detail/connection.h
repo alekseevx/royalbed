@@ -5,6 +5,7 @@
 
 #include "nhope/async/ao-context.h"
 #include "nhope/io/io-device.h"
+#include "nhope/io/tcp.h"
 #include "spdlog/logger.h"
 
 #include "royalbed/server/router.h"
@@ -20,7 +21,7 @@ struct SessionAttr
 class ConnectionCtx
 {
 public:
-    virtual Router& router() = 0;
+    [[nodiscard]] virtual const Router& router() const noexcept = 0;
 
     virtual SessionAttr startSession(std::uint32_t connectionNum) = 0;
     virtual void sessionFinished(std::uint32_t sessionNum) = 0;
@@ -32,7 +33,7 @@ struct ConnectionParams
     std::uint32_t num;
     ConnectionCtx& ctx;
     std::shared_ptr<spdlog::logger> log;
-    nhope::IODevicePtr sock;
+    nhope::TcpSocketPtr sock;
 };
 
 void openConnection(nhope::AOContext& aoCtx, ConnectionParams&& params);

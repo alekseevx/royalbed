@@ -86,7 +86,7 @@ TEST(SendRequest, IOError)   // NOLINT
         },
     };
 
-    auto dev = IOErrorWritter::create(aoCtx);
+    auto dev = BrokenSock::create(aoCtx);
 
     auto future = sendRequest(aoCtx, std::move(req), *dev);
 
@@ -107,7 +107,7 @@ TEST(SendRequest, Cancel)   // NOLINT
         },
     };
 
-    auto dev = SlowIODevice::create(aoCtx);
+    auto dev = SlowSock::create(aoCtx);
 
     auto future = sendRequest(aoCtx, std::move(req), *dev);
 

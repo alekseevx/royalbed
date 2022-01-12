@@ -25,6 +25,8 @@ namespace {
 namespace fs = std::filesystem;
 using namespace std::literals;
 
+constexpr auto indexHtml = "index.html"sv;
+
 std::string join(std::list<std::string_view> args)
 {
     args.remove_if([](auto a) {
@@ -53,14 +55,15 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
                 std::string_view parentPath)
 
 {
-    auto resourcePath = join({parentPath, entry.filename()});
+    const auto& filename = entry.filename();
+
+    auto resourcePath = join({parentPath, filename});
     const auto file = fs.open(resourcePath);
     const auto contentEncoding = getContentEncodingByExtension(resourcePath);
     if (contentEncoding) {
         resourcePath = removeEncoderExtension(resourcePath);
     }
-
-    router.get(resourcePath, [resourcePath, file, contentEncoding](RequestContext& ctx) mutable {
+    router.get(resourcePath, [resourcePath, file, contentEncoding](RequestContext& ctx) {
         ctx.responce.headers["Content-Length"] = std::to_string(file.size());
         ctx.responce.headers["Content-Type"] = common::mimeTypeForFileName(resourcePath);
 
@@ -70,6 +73,14 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
         ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
         return nhope::makeReadyFuture();
     });
+    if (filename == indexHtml) {
+        // Redirect to index page
+        router.get(parentPath, [resourcePath](RequestContext& ctx) {
+            ctx.responce.headers["Location"] = resourcePath;
+            ctx.responce.status = HttpStatus::Found;
+            return nhope::makeReadyFuture();
+        });
+    }
 }
 
 void publicDirEntry(Router& router, const cmrc::embedded_filesystem& fs, const cmrc::directory_entry& entry,

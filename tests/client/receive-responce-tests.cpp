@@ -108,7 +108,7 @@ TEST(ReceiveResponce, IOError)   // NOLINT
     auto conn = nhope::PushbackReader::create(
       aoCtx,                                                                        //
       nhope::concat(aoCtx, nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK"),   // Begining of the responce header
-                    IOErrorReader::create(aoCtx))                                   // IOError
+                    BrokenSock::create(aoCtx))                                      // IOError
     );
 
     auto future = receiveResponce(aoCtx, *conn);
@@ -128,7 +128,7 @@ TEST(ReceiveResponce, BodyReader_IOError)   // NOLINT
                                                        "Content-Length: 10\r\n"   //
                                                        "\r\n"                     //
                                                        "123456"),                 //
-                    IOErrorReader::create(aoCtx))                                 // IOError
+                    BrokenSock::create(aoCtx))                                    // IOError
     );
 
     auto future = receiveResponce(aoCtx, *conn).then([](auto resp) {
@@ -147,7 +147,7 @@ TEST(ReceiveResponce, Cancel)   // NOLINT
       aoCtx,                                                               //
       nhope::concat(aoCtx,                                                 //
                     nhope::StringReader::create(aoCtx, "HTTP/1.1 200 "),   // Begining of the responce header
-                    SlowIODevice::create(aoCtx))                           // long reading
+                    SlowSock::create(aoCtx))                               // long reading
     );
 
     auto future = receiveResponce(aoCtx, *conn);
@@ -171,7 +171,7 @@ TEST(ReceiveResponce, BodyReader_Cancel)   // NOLINT
                                                        "Content-Length: 10\r\n"   //
                                                        "\r\n"                     //
                                                        "123456"),                 //
-                    SlowIODevice::create(aoCtx))                                  // long body reading
+                    SlowSock::create(aoCtx))                                      // long body reading
     );
 
     auto future = receiveResponce(aoCtx, *conn).then([](auto resp) {

@@ -20,6 +20,8 @@
 #include "royalbed/server/static-files.h"
 #include "royalbed/server/swagger.h"
 
+#include "helpers/logger.h"
+
 CMRC_DECLARE(royalbed::swagger);
 
 namespace {
@@ -132,7 +134,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
     for (const auto& rec : testRecs) {
         RequestContext reqCtx{
           .num = 1,
-          .log = spdlog::default_logger(),
+          .log = nullLogger(),
           .router = router,
           .aoCtx = nhope::AOContext(aoCtx),
         };
@@ -155,7 +157,11 @@ TEST(Swagger, Api)   // NOLINT
     nhope::AOContext aoCtx(th);
     Router router{};
     RequestContext reqCtx{
-      .num = 1, .log = spdlog::default_logger(), .router = router, .aoCtx = nhope::AOContext(aoCtx)};
+      .num = 1,
+      .log = nullLogger(),
+      .router = router,
+      .aoCtx = nhope::AOContext(aoCtx),
+    };
 
     swagger(router, testFs(), "folder2/openapi.yml");
 

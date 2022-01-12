@@ -100,20 +100,22 @@ private:
     {
         auto safeHandler =
           nhope::makeSafeCallback(m_aoCtx, [self = shared_from_this()](std::exception_ptr err, std::size_t n) {
+              if (!self->processData(std::span(self->m_receiveBuf.begin(), n))) {
+                  return;
+              }
+
               if (err) {
                   self->m_promise.setException(std::move(err));
                   return;
               }
 
               if (n == 0) {
-                  // FIXME: Need more suitable error
+                  // FIXME: EOF? Need more suitable error
                   auto ex = std::make_exception_ptr(HttpError(HttpStatus::BadRequest));
                   self->m_promise.setException(std::move(ex));
               }
 
-              if (self->processData(std::span(self->m_receiveBuf.begin(), n))) {
-                  self->readNextPortion();
-              }
+              self->readNextPortion();
           });
 
         m_device.read(m_receiveBuf, std::move(safeHandler));

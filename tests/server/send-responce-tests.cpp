@@ -102,7 +102,7 @@ TEST(SendResponce, IOError)   // NOLINT
         },
     };
 
-    auto dev = IOErrorWritter::create(aoCtx);
+    auto dev = BrokenSock::create(aoCtx);
 
     auto future = sendResponce(aoCtx, std::move(resp), *dev);
 
@@ -121,7 +121,7 @@ TEST(SendResponce, Cancel)   // NOLINT
         },
     };
 
-    auto dev = SlowIODevice::create(aoCtx);
+    auto dev = SlowSock::create(aoCtx);
 
     auto future = sendResponce(aoCtx, std::move(resp), *dev);
 

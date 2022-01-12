@@ -26,6 +26,7 @@
 #include "royalbed/server/router.h"
 
 #include "helpers/iodevs.h"
+#include "helpers/logger.h"
 
 namespace {
 using namespace std::literals;
@@ -39,7 +40,7 @@ public:
       : m_router(std::move(router))
     {}
 
-    Router& router() noexcept override
+    [[nodiscard]] const Router& router() const noexcept override
     {
         return m_router;
     }
@@ -93,13 +94,13 @@ TEST(Session, OnlyHandler)   // NOLINT
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
-    EXPECT_EQ(responce, "HTTP/1.1 200 OK\r\n\r\n");
+    EXPECT_EQ(responce, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
 }
 
 TEST(Session, OnlyMiddlewares)   // NOLINT
@@ -133,7 +134,7 @@ TEST(Session, OnlyMiddlewares)   // NOLINT
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
@@ -173,7 +174,7 @@ TEST(Session, MiddlewaresAndHandler)   // NOLINT
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
@@ -200,13 +201,13 @@ TEST(Session, ExceptionInHandler)   // NOLINT
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
-    EXPECT_EQ(responce, "HTTP/1.1 400 XXX\r\n\r\n");
+    EXPECT_EQ(responce, "HTTP/1.1 400 XXX\r\nConnection: close\r\n\r\n");
 }
 
 TEST(Session, ExceptionInMiddleware)   // NOLINT
@@ -233,7 +234,7 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
@@ -250,14 +251,14 @@ TEST(Session, Close)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = nhope::PushbackReader::create(aoCtx, SlowIODevice::create(aoCtx));
+    auto in = nhope::PushbackReader::create(aoCtx, SlowSock::create(aoCtx));
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
                           .ctx = testSessionCtx,
                           .in = *in,
                           .out = *out,
-                          .log = spdlog::default_logger(),
+                          .log = nullLogger(),
                         });
 
     EXPECT_FALSE(testSessionCtx.wait(20ms));

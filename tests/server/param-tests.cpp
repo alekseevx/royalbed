@@ -11,6 +11,8 @@
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/router.h"
 
+#include "helpers/logger.h"
+
 namespace {
 
 using namespace std::literals;
@@ -55,7 +57,7 @@ TEST(Param, simple)   // NOLINT
 
     RequestContext reqCtx{
       .num = 1,
-      .log = spdlog::default_logger(),
+      .log = nullLogger(),
       .router = router,
       .request = {.uri = Uri::parseRelative("/prefix/42/path2/?someTest2=fx")},
       .aoCtx = nhope::AOContext(aoCtx),
@@ -90,7 +92,7 @@ TEST(Param, invalid)   // NOLINT
 
     RequestContext reqCtx{
       .num = 1,
-      .log = spdlog::default_logger(),
+      .log = nullLogger(),
       .router = router,
       .request = {.uri = Uri::parseRelative("/prefix/" + maxIntStr)},
       .aoCtx = nhope::AOContext(aoCtx),
