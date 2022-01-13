@@ -98,26 +98,26 @@ private:
 
     void readNextPortion()
     {
-        auto safeHandler =
-          nhope::makeSafeCallback(m_aoCtx, [self = shared_from_this()](std::exception_ptr err, std::size_t n) {
-              if (!self->processData(std::span(self->m_receiveBuf.begin(), n))) {
-                  return;
-              }
+        m_device.read(m_receiveBuf, [self = shared_from_this()](std::exception_ptr err, std::size_t n) {
+            self->m_aoCtx.exec([self, err = std::move(err), n] {
+                if (!self->processData(std::span(self->m_receiveBuf.begin(), n))) {
+                    return;
+                }
 
-              if (err) {
-                  self->m_promise.setException(std::move(err));
-                  return;
-              }
+                if (err) {
+                    self->m_promise.setException(err);
+                    return;
+                }
 
-              if (n == 0) {
-                  auto ex = std::make_exception_ptr(HttpError(HttpStatus::BadRequest));
-                  self->m_promise.setException(std::move(ex));
-              }
+                if (n == 0) {
+                    auto ex = std::make_exception_ptr(HttpError(HttpStatus::BadRequest));
+                    self->m_promise.setException(std::move(ex));
+                    return;
+                }
 
-              self->readNextPortion();
-          });
-
-        m_device.read(m_receiveBuf, std::move(safeHandler));
+                self->readNextPortion();
+            });
+        });
     }
 
     static int onUrl(llhttp_t* httpParser, const char* at, std::size_t size)
