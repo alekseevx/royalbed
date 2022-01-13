@@ -71,7 +71,6 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
             ctx.responce.headers["Content-Encoding"] = contentEncoding.value();
         };
         ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
-        return nhope::makeReadyFuture();
     });
     if (filename == indexHtml) {
         // Redirect to index page
@@ -82,7 +81,6 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
             }
             ctx.responce.headers["Location"] = fmt::format("{}/{}", path, indexHtml);
             ctx.responce.status = HttpStatus::Found;
-            return nhope::makeReadyFuture();
         });
     }
 }
