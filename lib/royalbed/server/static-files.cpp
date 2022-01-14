@@ -63,15 +63,17 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
     if (contentEncoding) {
         resourcePath = removeEncoderExtension(resourcePath);
     }
-    router.get(resourcePath, [resourcePath, file, contentEncoding](RequestContext& ctx) {
-        ctx.responce.headers["Content-Length"] = std::to_string(file.size());
-        ctx.responce.headers["Content-Type"] = common::mimeTypeForFileName(resourcePath);
+    router.get(resourcePath,
+               [resourcePath, file, contentEncoding,
+                contentType = std::string(common::mimeTypeForFileName(resourcePath))](RequestContext& ctx) {
+                   ctx.responce.headers["Content-Length"] = std::to_string(file.size());
+                   ctx.responce.headers["Content-Type"] = contentType;
 
-        if (contentEncoding != std::nullopt) {
-            ctx.responce.headers["Content-Encoding"] = contentEncoding.value();
-        };
-        ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
-    });
+                   if (contentEncoding != std::nullopt) {
+                       ctx.responce.headers["Content-Encoding"] = contentEncoding.value();
+                   };
+                   ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
+               });
     if (filename == indexHtml) {
         // Redirect to index page
         router.get(parentPath, [resourcePath](RequestContext& ctx) {
