@@ -21,7 +21,7 @@ test-job:
     - cd build
     - cmake --build . --target royal_bed_coverage
     - cd ..
-    - gcovr --xml-pretty --print-summary --exclude-unreachable-branches -e .deps -e lib/3rdparty -e tests -e build -o coverage.xml --root .
+    - gcovr --xml-pretty --print-summary --exclude-unreachable-branches -e .deps -e lib/3rdparty -e tests -e build -e examples -o coverage.xml --root .
 
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:

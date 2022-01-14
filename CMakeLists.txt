@@ -57,4 +57,8 @@ if (WIN32)
     target_compile_definitions(${BASTARD_PACKAGE_NAME} PUBLIC -D_WIN32_WINNT=0x0601)
 endif()
 
+if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_subdirectory(examples)
+endif()
+
 # EnableWarnings(${BASTARD_PACKAGE_NAME})
