@@ -73,14 +73,12 @@ TEST(Server, Echo)   // NOLINT
         return nhope::makeReadyFuture();
     });
 
-    auto params = ServerParams{
-      .bindAddress = "127.0.0.1",
-      .port = port,
-      .router = std::move(router),
-      .log = nullLogger(),
-    };
-
-    start(aoCtx, std::move(params));
+    auto srv = Server::start(aoCtx, {
+                                      .bindAddress = "127.0.0.1",
+                                      .port = port,
+                                      .router = std::move(router),
+                                      .log = nullLogger(),
+                                    });
 
     for (int i = 0; i < iterCount; ++i) {
         const auto data = fmt::format("test_{}", i);

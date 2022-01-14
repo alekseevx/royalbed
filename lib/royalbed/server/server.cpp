@@ -27,27 +27,30 @@ nhope::TcpServerPtr startTcpServer(nhope::AOContext& aoCtx, const ServerParams& 
                                           });
 }
 
-class Server final
-  : public nhope::AOContextCloseHandler
+class ServerImpl final
+  : public Server
   , public detail::ConnectionCtx
 {
 public:
-    Server(nhope::AOContext& aoCtx, ServerParams&& params)
+    ServerImpl(nhope::AOContext& aoCtx, ServerParams&& params)
       : m_aoCtx(aoCtx)
       , m_log(std::move(params.log->clone(loggerName(params))))
       , m_tcpServer(startTcpServer(aoCtx, params))
       , m_router(std::move(params.router))
     {
-        m_aoCtx.startCancellableTask(
-          [this] {
-              this->acceptNextConnection();
-          },
-          *this);
+        m_aoCtx.exec([this] {
+            this->acceptNextConnection();
+        });
     }
 
-    ~Server()
+    ~ServerImpl()
     {
-        m_aoCtx.removeCloseHandler(*this);
+        m_aoCtx.close();
+    }
+
+    [[nodiscard]] nhope::SockAddr bindAddress() const override
+    {
+        return m_tcpServer->bindAddress();
     }
 
 private:
@@ -81,11 +84,6 @@ private:
         m_log->info("The connection with num={} closed", connectionNum);
     }
 
-    void aoContextClose() noexcept override
-    {
-        delete this;
-    }
-
     void acceptNextConnection()
     {
         m_tcpServer->accept().then(m_aoCtx, [this](auto connection) {
@@ -106,8 +104,6 @@ private:
         });
     }
 
-    nhope::AOContext m_aoCtx;
-
     std::shared_ptr<spdlog::logger> m_log;
     nhope::TcpServerPtr m_tcpServer;
     Router m_router;
@@ -117,13 +113,15 @@ private:
 
     std::uint32_t m_connectionCounter = 0;
     std::uint32_t m_seesionCounter = 0;
+
+    nhope::AOContext m_aoCtx;
 };
 
 }   // namespace
 
-void start(nhope::AOContext& aoCtx, ServerParams&& params)
+ServerPtr Server::start(nhope::AOContext& aoCtx, ServerParams&& params)
 {
-    new Server(aoCtx, std::move(params));
+    return std::make_unique<ServerImpl>(aoCtx, std::move(params));
 }
 
 }   // namespace royalbed::server

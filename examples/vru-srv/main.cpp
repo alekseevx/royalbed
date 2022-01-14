@@ -12,6 +12,7 @@
 #include "royalbed/server/router.h"
 #include "royalbed/server/swagger.h"
 
+#include "spdlog/sinks/null_sink.h"
 #include "spdlog/spdlog.h"
 
 #include "endpoints/all.h"
@@ -19,7 +20,6 @@
 namespace {
 
 using namespace royalbed::server;
-constexpr auto ipSrv = "127.0.0.1";
 constexpr auto portSrv = 8080;
 
 }   // namespace
@@ -39,14 +39,12 @@ int main()
         auto swaggerFs = cmrc::vru_srv::get_filesystem();
         swagger(router, swaggerFs, "api/example.yml");
 
-        auto params = ServerParams{
-          .bindAddress = ipSrv,
-          .port = portSrv,
-          .router = std::move(router),
-          .log = spdlog::default_logger(),
-        };
-
-        start(aoCtx, std::move(params));
+        auto server = Server::start(aoCtx, {
+                                             .bindAddress = "0.0.0.0",
+                                             .port = portSrv,
+                                             .router = std::move(router),
+                                             .log = spdlog::null_logger_mt("null"),
+                                           });
 
         auto workGuard = asio::make_work_guard(ioCtx);
         ioCtx.run();

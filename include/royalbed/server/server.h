@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "nhope/io/sock-addr.h"
 #include "spdlog/logger.h"
 #include "nhope/async/ao-context.h"
 
@@ -21,6 +22,17 @@ struct ServerParams
     std::shared_ptr<spdlog::logger> log;
 };
 
-void start(nhope::AOContext& aoCtx, ServerParams&& params);
+class Server;
+using ServerPtr = std::unique_ptr<Server>;
+
+class Server
+{
+public:
+    virtual ~Server() = default;
+
+    [[nodiscard]] virtual nhope::SockAddr bindAddress() const = 0;
+
+    static ServerPtr start(nhope::AOContext& aoCtx, ServerParams&& params);
+};
 
 }   // namespace royalbed::server
