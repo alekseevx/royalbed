@@ -169,7 +169,7 @@ private:
               .statusMessage = std::move(statusMessage),
               .headers =
                 {
-                  {"Content-Type", "text/plain"},
+                  {"Content-Type", "text/plain; charset=utf-8"},
                   {"Content-Length", std::to_string(body.size())},
                 },
               .body = nhope::StringReader::create(aoCtx(), std::move(body)),
