@@ -14,18 +14,17 @@
 #include <vector>
 
 #include "fmt/core.h"
-#include "fmt/format.h"
+
 #include "nhope/async/future.h"
-
 #include "nhope/utils/scope-exit.h"
-#include "royalbed/common/detail/string-utils.h"
 
+#include "royalbed/common/detail/string-utils.h"
+#include "royalbed/server/http-status.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/responce.h"
 #include "royalbed/server/router.h"
-#include "royalbed/server/http-status.h"
 
 namespace royalbed::server {
 
@@ -469,6 +468,18 @@ std::vector<std::string> Router::allowMethods(std::string_view path) const
     }
 
     return bestNode->allowMethods();
+}
+
+std::vector<std::string> Router::resources() const
+{
+    std::vector<std::string> resources;
+    m_root->visit([&resources](std::string_view path, Node& node) {
+        if (!node.allowMethods().empty()) {
+            resources.emplace_back("/" + normalizePath(path));
+        }
+    });
+    std::sort(resources.begin(), resources.end());
+    return resources;
 }
 
 Router& Router::addRoute(std::string_view method, std::string_view resource, LowLevelHandler handler)

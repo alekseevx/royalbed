@@ -14,11 +14,6 @@ namespace royalbed::server {
 namespace {
 using namespace detail;
 
-std::string loggerName(const ServerParams& params)
-{
-    return fmt::format("{}/httpsrv-{}:{}", params.log->name(), params.bindAddress, params.port);
-}
-
 nhope::TcpServerPtr startTcpServer(nhope::AOContext& aoCtx, const ServerParams& params)
 {
     return nhope::TcpServer::start(aoCtx, {
@@ -34,10 +29,17 @@ class ServerImpl final
 public:
     ServerImpl(nhope::AOContext& aoCtx, ServerParams&& params)
       : m_aoCtx(aoCtx)
-      , m_log(std::move(params.log->clone(loggerName(params))))
+      , m_log(params.log)
       , m_tcpServer(startTcpServer(aoCtx, params))
       , m_router(std::move(params.router))
     {
+        const auto bindAddr = m_tcpServer->bindAddress();
+        m_log->info("Service accepting HTTP connections at http://{}", bindAddr.toString());
+
+        for (const auto& resource : m_router.resources()) {
+            m_log->info("Resource published on route {}", resource);
+        }
+
         m_aoCtx.exec([this] {
             this->acceptNextConnection();
         });

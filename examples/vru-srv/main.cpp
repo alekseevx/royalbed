@@ -43,16 +43,16 @@ int main()
                                              .bindAddress = "0.0.0.0",
                                              .port = portSrv,
                                              .router = std::move(router),
-                                             .log = spdlog::null_logger_mt("null"),
+                                             .log = spdlog::default_logger()->clone("httpsrv"),
                                            });
 
         auto workGuard = asio::make_work_guard(ioCtx);
         ioCtx.run();
+        return EXIT_SUCCESS;
     } catch (const std::exception& e) {
         spdlog::error("{0}", e.what());
         return EXIT_FAILURE;
     } catch (...) {
         return EXIT_FAILURE;
     }
-    return EXIT_SUCCESS;
 }

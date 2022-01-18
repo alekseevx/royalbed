@@ -89,6 +89,8 @@ public:
         return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
     }
 
+    [[nodiscard]] std::vector<std::string> resources() const;
+
 private:
     Router& addRoute(std::string_view method, std::string_view resource, LowLevelHandler handler);
 
