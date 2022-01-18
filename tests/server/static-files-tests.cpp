@@ -124,7 +124,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
       {"/empty-file.json", "application/json", emptyFileData},
       {"/folder2/small-file.bin", "application/octet-stream", smallFileData},
       {"/folder2/big-file.bin", "application/octet-stream", bigFileData},
-      {"/folder2/encoded-file.js", "application/javascript", encodedFileData, "gzip"},
+      {"/folder2/encoded-file.js", "application/javascript; charset=utf-8", encodedFileData, "gzip"},
       {"/folder2/openapi.yml", "application/yaml", openApiFileData},
     };
 
@@ -177,6 +177,6 @@ TEST(Swagger, Api)   // NOLINT
         const auto htmlBody = swaggerFs.open("swagger/index.html");
         const auto body = nhope::readAll(*reqCtx.responce.body).get();
         EXPECT_TRUE(eq(gsl::span{htmlBody.begin(), htmlBody.end()}, body));
-        EXPECT_EQ(reqCtx.responce.headers["Content-Type"], "text/html");
+        EXPECT_EQ(reqCtx.responce.headers["Content-Type"], "text/html; charset=utf-8");
     }
 }
