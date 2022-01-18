@@ -10,10 +10,10 @@ path = "tests"
 
 [dependencies]
 asio = { git = "git@gitlab.olimp.lan:github/standalone-asio.git", tag = "asio-1-20-0", interface = "asio/include" }
-fmt = { git  = "git@gitlab.olimp.lan:github/fmtlib.git", tag = "8.0.1" }
+fmt = { git  = "git@gitlab.olimp.lan:github/fmtlib.git", tag = "8.1.1" }
 gsl = { git = "git@gitlab.olimp.lan:github/gsl.git", tag = "v3.1.0", interface = "include" }
 nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git" }
-nlohmann_json = {git = "git@gitlab.olimp.lan:github/nlohmann-json.git", tag = "v3.10.4"}
+nlohmann_json = { git = "git@gitlab.olimp.lan:github/nlohmann-json.git", tag = "v3.10.5" }
 spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", tag = "v1.9.2" }
 
 [options.spdlog]

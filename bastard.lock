@@ -5,10 +5,10 @@ bastard = 0.16.0
 
 [dependencies]
 asio = { git = "git@gitlab.olimp.lan:github/standalone-asio.git", rev = "6c054e98", interface = "asio/include" }
-fmt = { git = "git@gitlab.olimp.lan:github/fmtlib.git", rev = "d141cdbe" }
+fmt = { git = "git@gitlab.olimp.lan:github/fmtlib.git", rev = "b6f4ceae" }
 gsl = { git = "git@gitlab.olimp.lan:github/gsl.git", rev = "0f6dbc9", interface = "include" }
-nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "4d4001a" }
-nlohmann_json = { git = "git@gitlab.olimp.lan:github/nlohmann-json.git", rev = "fec56a1a" }
+nhope = { git = "git@gitlab.olimp.lan:alekseev/nhope.git", rev = "71dfa08" }
+nlohmann_json = { git = "git@gitlab.olimp.lan:github/nlohmann-json.git", rev = "4f8fba14" }
 spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", rev = "eb322062" }
 
 [dev-dependencies]
