@@ -45,7 +45,7 @@ public:
         });
     }
 
-    ~ServerImpl()
+    ~ServerImpl() override
     {
         m_aoCtx.close();
     }

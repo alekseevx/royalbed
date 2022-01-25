@@ -3,13 +3,13 @@
 #include <cstring>
 #include <optional>
 #include <random>
+#include <span>
 #include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include "cmrc/cmrc.hpp"
-#include "gsl/span"
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context.h"
@@ -98,7 +98,7 @@ cmrc::embedded_filesystem testFs()
     return cmrc::embedded_filesystem(rootIndex);
 }
 
-bool eq(gsl::span<const char> v1, gsl::span<const std::uint8_t> v2)
+bool eq(std::span<const char> v1, std::span<const std::uint8_t> v2)
 {
     if (v1.size() != v2.size()) {
         return false;
@@ -117,7 +117,7 @@ TEST(StaticFiles, getFiles)   // NOLINT
     {
         const std::string path;
         const std::string etalonContentType;
-        const gsl::span<const char> etalonData;
+        const std::span<const char> etalonData;
         const std::string contentEncoding;
     };
     const auto testRecs = std::vector<TestRec>{
@@ -176,7 +176,7 @@ TEST(Swagger, Api)   // NOLINT
         auto swaggerFs = cmrc::royalbed::swagger::get_filesystem();
         const auto htmlBody = swaggerFs.open("swagger/index.html");
         const auto body = nhope::readAll(*reqCtx.responce.body).get();
-        EXPECT_TRUE(eq(gsl::span{htmlBody.begin(), htmlBody.end()}, body));
+        EXPECT_TRUE(eq(std::span{htmlBody.begin(), htmlBody.end()}, body));
         EXPECT_EQ(reqCtx.responce.headers["Content-Type"], "text/html; charset=utf-8");
     }
 }
