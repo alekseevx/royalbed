@@ -1,11 +1,11 @@
 Checks: >
     -*,
     boost-*,
-    cert-*,
+    cert-*,-cert-err58-cpp,
     clang-analyzer-*,
     cppcoreguidelines-*,-cppcoreguidelines-special-member-functions,
       -cppcoreguidelines-avoid-magic-numbers,
-    misc-*,-misc-non-private-member-variables-in-classes,
+    misc-*,-misc-non-private-member-variables-in-classes,-misc-no-recursion,
     modernize-*,-modernize-use-trailing-return-type,
     performance-*,
     portability-*,

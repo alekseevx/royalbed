@@ -1,0 +1,340 @@
+openapi: 3.0.0
+
+info:
+  title: API для управления виртуальными радионаправлениями
+  version: '1.0'
+
+tags:
+  - name: VRU
+    description: API для управления виртуальными радионаправлениями
+  - name: HfChannel
+    description: API для управления ВЧ-каналами
+
+paths:
+  /api/vru:
+    summary: API для работы с виртуальными радионаправлениями 
+    get:
+      tags: [VRU]
+      summary: Получить список созданных в блоке радионаправлений
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VruInfoList'      
+
+  /api/vru/{vruId}:
+    parameters:
+      - $ref: '#/components/parameters/VruId'
+    get:
+      tags: [VRU]
+      summary: Получить информацию о заданном радионаправлении
+      responses:
+        200:
+          description: OK
+          content:            
+            application/json:
+             schema:
+                $ref: '#/components/schemas/VruInfo'
+
+  /api/vru/{vruId}/status:
+    get:
+      tags: [VRU]
+      summary: Получить состояние виртуального радионаправления
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      responses:
+        200:
+          description: OK
+          content:            
+            application/json:
+             schema:
+                $ref: '#/components/schemas/VruStatus'
+
+  /api/vru/{vruId}/activate:
+    post:
+      tags: [VRU]
+      summary:  Активировать виртуальное радионаправление
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      responses:
+        200:
+          description: OK
+
+  /api/vru/{vruId}/deactivate:
+    post:
+      tags: [VRU]
+      summary: Деактивировать виртуальное радионаправление
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      responses:
+        200:
+          description: OK
+
+  /api/vru/{vruId}/freq:
+    put:
+      tags: [VRU]
+      summary: Установить частоту
+      description: >
+        Параметр hfChannel используется только при разнесенном приеме.
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - allOf:
+                  - $ref: '#/components/schemas/Freq'
+                  - $ref: '#/components/schemas/HfChannelNum'
+                  required: [freq]
+                - allOf:
+                  - $ref: '#/components/schemas/PrearrangedFreqNum'
+                  - $ref: '#/components/schemas/HfChannelNum'
+                  required: [prearrangedFreqNum]
+            examples:
+              'Установить частоту 3240000':
+                value:
+                  freq: 3240000
+              'Установить частоту с номером 5 из списка ЗПЧ':
+                value:
+                  prearranged-freq-num: 5
+      responses:
+        200:
+          description: OK
+
+  /api/vru/{vruId}/sample-rate:
+    get:
+      tags: [VRU]
+      summary: Получить частоту дискретизации
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleRate'
+
+    put:
+      tags: [VRU]
+      summary: Установили частоту дискретизации
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SampleRate'
+      responses:
+        200:
+          description: OK
+
+  /api/vru/{vruId}/bandwidth:
+    get:
+      tags: [VRU]
+      summary: Получить ширину полосы
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandWidth'
+
+    put:
+      tags: [VRU]
+      summary: Установить ширину полосы
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BandWidth'
+      responses:
+        200:
+          description: OK
+
+  /api/vru/{vruId}/prearranged-freqs:
+    put:
+      tags: [VRU]
+      summary: Установить набор ЗПЧ
+      parameters:
+        - $ref: '#/components/parameters/VruId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/PrearrangedFreqList'
+                - $ref: '#/components/schemas/HfChannelNum'
+              required: ['prearrangedFreqList']
+      responses:
+        200:
+          description: OK
+
+components:
+  parameters:
+    VruId:
+      name: vruId
+      in: path
+      required: true
+      description: Идентификатор радионаправления
+      schema:
+        type: string
+
+    HfChannelNum:
+      name: hfChannelNum
+      in: path
+      required: true
+      description: Номер ВЧ канала
+      schema:
+        type: integer
+
+  schemas:
+    VruId:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Идентификатор виртуального радионаправления
+
+    VruStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Состояние виртуального радионаправления
+          enum: [Active, NotActive, Broken]
+
+    VruInfo:
+      type: object
+      description: Информация о виртуальном радионаправлении
+      allOf:
+        - $ref: '#/components/schemas/VruId'
+        - $ref: '#/components/schemas/VruStatus'
+        - $ref: '#/components/schemas/EmissionClass'
+        - $ref: '#/components/schemas/SampleRate'
+        - $ref: '#/components/schemas/HfChannelCount'
+      required: [id, status, emissionClass, hfChannelCount]
+  
+    VruInfoList:
+      type: array
+      items:
+        $ref: '#/components/schemas/VruInfo'
+
+    HfChannelNum:
+      type: object
+      properties:
+        hfChannelNum:
+          type: integer
+          description: Номер ВЧ-канала
+          minimum: 0
+          maximum: 3
+
+    HfChannelCount:
+      type: object
+      properties:
+        hfChannelCount:
+          type: integer
+          description: Число ВЧ-каналов
+          minimum: 0
+          maximum: 4
+
+    Freq:
+      type: object
+      properties:
+        freq:
+          type: integer
+          description: Номинал частоты
+          minimum: 1500000
+          maximum: 30000000
+          example: 3240000
+
+    FreqGlobalNumberOnTract:
+      type: object
+      properties:
+        globalNumberOnTract:
+          type: integer
+          description: Глобальный номер частоты на тракте (в УМ)
+
+    PrearrangedFreqNum:
+      type: object
+      properties:
+        prearrangedFreqNum:
+          type: integer
+          description: Индекс частоты из списка ЗПЧ
+          minimum: 0
+          maximum: 127
+          example: 5
+
+    FreqOrPrearrangedFreqNum:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/Freq'
+        - $ref: '#/components/schemas/PrearrangedFreqNum'
+
+    PrearrangedFreq:
+      type: object
+      description: Заранее подготовленная частота (ЗПЧ)
+      allOf:
+        - $ref: '#/components/schemas/FreqGlobalNumberOnTract'
+        - $ref: '#/components/schemas/Freq'
+        - $ref: '#/components/schemas/AntennaNum'
+        - properties:          
+            prepared:
+              type: boolean
+              description: Признак того, что частота уже была подготовлена (подготовка не нужна)
+      required: [freq, globalNumberOnTract, antennaNum]
+
+    PrearrangedFreqList:
+      type: object
+      properties:
+        prearrangedFreqList:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrearrangedFreq'
+          maxLength: 128
+
+    EmissionClass:
+      type: object
+      properties:
+        emissionClass:
+          type: string
+          description: Класс излучения
+          enum: [RAW, A1A, A2A, H2A, J2A, J2A, F1B, F7B, G1B, J3E, J3E2_4, R3E, H3E, B8E2,
+          A3E, F3E, G1BB, G1BE,  AT3104, B8E, N2N, AMARANT, UPS,
+          F1B_N, F7B_N, G1B_N, PUTILIN_MODE]
+
+    SampleRate:
+      type: object
+      properties:
+        sampleRate:
+          type: integer
+          description: Частота дискретизации
+          example: 8000
+
+    BandWidth:
+      type: object
+      properties:
+        bandWidth:
+          type: integer
+          description: Ширина полосы частот
+          example: 3000
+
+    AntennaNum:
+      type: object
+      properties:
+        antennaNum:
+          type: integer
+          description: Номер антенны
+
