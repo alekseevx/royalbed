@@ -401,6 +401,11 @@ Router& Router::head(const std::string_view resource, LowLevelHandler handler)
     return this->addRoute("HEAD"sv, resource, std::move(handler));
 }
 
+Router& Router::del(std::string_view resource, LowLevelHandler handler)
+{
+    return this->addRoute("DELETE"sv, resource, std::move(handler));
+}
+
 Router& Router::addMiddleware(Middleware middleware)
 {
     m_root->addMiddleware(std::move(middleware));

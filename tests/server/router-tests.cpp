@@ -402,6 +402,10 @@ TEST(Router, HightLevelHandler)   // NOLINT
         return "42";
     });
 
+    router.del("/some/", [] {
+        return 1;
+    });
+
     nhope::ThreadExecutor th;
 
     RequestContext ctx{
@@ -421,6 +425,13 @@ TEST(Router, HightLevelHandler)   // NOLINT
         const auto body = nhope::readAll(*ctx.responce.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json.get<std::string>(), "42");
+    }
+
+    {
+        router.route("DELETE", "/some").handler(ctx).get();
+        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto json = nlohmann::json::parse(body.begin(), body.end());
+        EXPECT_EQ(json.get<int>(), 1);
     }
 }
 

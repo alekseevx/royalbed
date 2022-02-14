@@ -42,6 +42,7 @@ public:
     Router& patch(std::string_view resource, LowLevelHandler handler);
     Router& options(std::string_view resource, LowLevelHandler handler);
     Router& head(std::string_view resource, LowLevelHandler handler);
+    Router& del(std::string_view resource, LowLevelHandler handler);
 
     Router& addMiddleware(Middleware middleware);
 
@@ -87,6 +88,12 @@ public:
     Router& head(std::string_view resource, Handler&& handler)
     {
         return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+    }
+
+    template<HightLevelHandler Handler>
+    Router& del(std::string_view resource, Handler&& handler)
+    {
+        return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
     }
 
     [[nodiscard]] std::vector<std::string> resources() const;
