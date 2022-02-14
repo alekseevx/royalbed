@@ -148,12 +148,10 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler)
 {
     checkRequestHandler<Handler>();
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
-    using R = typename FnProps::ReturnType;
 
-    constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
-    constexpr bool paramHasBody = bodyIndex != -1;
-
-    return [handler = std::move(handler), bodyIndex](RequestContext& ctx) {
+    return [handler = std::move(handler)](RequestContext& ctx) {
+        constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
+        constexpr bool paramHasBody = bodyIndex != -1;
         if constexpr (paramHasBody) {
             using BType = std::decay_t<typename FnProps::template ArgumentType<bodyIndex>>;
             if (common::extractBodyType(ctx.request.headers) != BType::type()) {

@@ -38,7 +38,7 @@ concept Conflictable = requires
 };
 
 template<typename T>
-void initProperties(ParamProperties<T>& properties)
+void initProperties(ParamProperties<T>& /*properties*/)
 {}
 
 template<typename T, ParametrSettings<T> HeadProperty, ParametrSettings<T>... TailProperties>
