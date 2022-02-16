@@ -4,6 +4,7 @@
 #include <memory>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <variant>
 
@@ -108,7 +109,8 @@ Body<T> parseBody(const Headers& /*headers*/, const std::vector<std::uint8_t>& r
         return jsonValue.get<T>();
 
     } catch (const std::exception& ex) {
-        const auto message = fmt::format("Failed to parse request body: {}", ex.what());
+        const auto message = fmt::format("Failed to parse request body for {0}: {1}",
+                                         typeid(T).name(), ex.what());
         throw HttpError(HttpStatus::BadRequest, message);
     }
 }
