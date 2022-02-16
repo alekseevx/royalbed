@@ -64,7 +64,7 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
         resourcePath = removeEncoderExtension(resourcePath);
     }
     router.get(resourcePath,
-               [resourcePath, file, contentEncoding,
+               [file, contentEncoding,
                 contentType = std::string(common::mimeTypeForFileName(resourcePath))](RequestContext& ctx) {
                    ctx.responce.headers["Content-Length"] = std::to_string(file.size());
                    ctx.responce.headers["Content-Type"] = contentType;
@@ -76,7 +76,7 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
                });
     if (filename == indexHtml) {
         // Redirect to index page
-        router.get(parentPath, [resourcePath](RequestContext& ctx) {
+        router.get(parentPath, [](RequestContext& ctx) {
             auto path = ctx.request.uri.path;
             if (!path.empty() && path.back() == '/') {
                 path.pop_back();
