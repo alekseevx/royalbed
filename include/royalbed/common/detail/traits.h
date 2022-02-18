@@ -17,4 +17,7 @@ inline constexpr bool canDeserializeJson<void> = false;
 template<typename T>
 inline constexpr bool canSerializeJson = nlohmann::detail::has_to_json<nlohmann::json, T>::value;
 
+template<>
+inline constexpr bool canSerializeJson<nlohmann::json> = true;
+
 }   // namespace royalbed::common::detail

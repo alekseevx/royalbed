@@ -402,6 +402,12 @@ TEST(Router, HightLevelHandler)   // NOLINT
         return "42";
     });
 
+    router.get("/some_direct_json/", [] {
+        return nlohmann::json{
+          {"field", "42"},
+        };
+    });
+
     router.del("/some/", [] {
         return 1;
     });
@@ -432,6 +438,13 @@ TEST(Router, HightLevelHandler)   // NOLINT
         const auto body = nhope::readAll(*ctx.responce.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json.get<int>(), 1);
+    }
+
+    {
+        router.route("GET", "/some_direct_json").handler(ctx).get();
+        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto json = nlohmann::json::parse(body.begin(), body.end());
+        EXPECT_EQ(json["field"].get<std::string>(), "42");
     }
 }
 
