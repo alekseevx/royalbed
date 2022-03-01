@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <stop_token>
@@ -17,8 +18,10 @@
 
 #include "nhope/async/future.h"
 #include "nhope/utils/scope-exit.h"
+#include "nhope/io/string-reader.h"
 
 #include "royalbed/common/detail/string-utils.h"
+#include "royalbed/common/responce.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
@@ -126,6 +129,32 @@ const auto defaultMethodNotAllowedHandler = LowLevelHandler{[](RequestContext& c
     return nhope::makeReadyFuture();
 }};
 
+const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, std::exception_ptr ex) {
+    try {
+        std::rethrow_exception(std::move(ex));
+    } catch (const HttpError& e) {
+        ctx.responce = {
+          .status = e.httpStatus(),
+          .statusMessage = e.what(),
+          .headers = {},
+          .body = nullptr,
+        };
+    } catch (const std::exception& e) {
+        auto body = std::string(e.what());
+        ctx.responce = {
+          .status = HttpStatus::InternalServerError,
+          .statusMessage = std::string(HttpStatus::message(HttpStatus::InternalServerError)),
+          .headers =
+            {
+              {"Content-Type", "text/plain; charset=utf-8"},
+              {"Content-Length", std::to_string(body.size())},
+            },
+          .body = nhope::StringReader::create(ctx.aoCtx, std::move(body)),
+        };
+    }
+    return nhope::makeReadyFuture();
+}};
+
 const auto nullHandler = LowLevelHandler{nullptr};
 
 }   // namespace
@@ -212,7 +241,7 @@ public:
 
     const LowLevelHandler& notFoundHandler() const noexcept
     {
-        return this->findBestErrHandler(&Node::m_notFoundHandler, defaultNotFoundHandler);
+        return this->findBestHttpErrHandler(&Node::m_notFoundHandler, defaultNotFoundHandler);
     }
 
     void setMethodNotAllowedHandler(LowLevelHandler&& handler)
@@ -220,9 +249,19 @@ public:
         m_methodNotAllowedHandler = std::move(handler);
     }
 
+    const ExceptionHandler& exceptionHandler() const noexcept
+    {
+        return this->findBestExceptionHandler();
+    }
+
+    void setErrorHandler(ExceptionHandler&& handler)
+    {
+        m_exceptionHandler = std::move(handler);
+    }
+
     const LowLevelHandler& methodNotAllowedHandler() const noexcept
     {
-        return this->findBestErrHandler(&Node::m_methodNotAllowedHandler, defaultMethodNotAllowedHandler);
+        return this->findBestHttpErrHandler(&Node::m_methodNotAllowedHandler, defaultMethodNotAllowedHandler);
     }
 
     void addMiddleware(Middleware&& middleware)
@@ -258,6 +297,7 @@ public:
         m_methodNotAllowedHandler = std::move(other.m_methodNotAllowedHandler);
         m_notFoundHandler = std::move(other.m_notFoundHandler);
         m_middlewares = std::move(other.m_middlewares);
+        m_exceptionHandler = std::move(other.m_exceptionHandler);
     }
 
     template<typename Visitor>
@@ -335,8 +375,8 @@ private:
         path.resize(curPathLen);
     }
 
-    const LowLevelHandler& findBestErrHandler(const LowLevelHandler Node::*handlerField,
-                                              const LowLevelHandler& defaultHandler) const noexcept
+    const LowLevelHandler& findBestHttpErrHandler(const LowLevelHandler Node::*handlerField,
+                                                  const LowLevelHandler& defaultHandler) const noexcept
     {
         for (const Node* cur = this; cur != nullptr; cur = cur->m_parent) {
             if (cur->*handlerField != nullptr) {
@@ -344,6 +384,16 @@ private:
             }
         }
         return defaultHandler;
+    }
+
+    const ExceptionHandler& findBestExceptionHandler() const noexcept
+    {
+        for (const Node* cur = this; cur != nullptr; cur = cur->m_parent) {
+            if (cur->m_exceptionHandler != nullptr) {
+                return cur->m_exceptionHandler;
+            }
+        }
+        return defaultExceptionHandler;
     }
 
     using Subtree = std::unordered_map<std::string, std::unique_ptr<Node>, StringHash, StringEqual>;
@@ -354,6 +404,7 @@ private:
     std::unordered_map<std::string, LowLevelHandler, StringHash, StringEqual> m_methodHandlers;
     LowLevelHandler m_notFoundHandler;
     LowLevelHandler m_methodNotAllowedHandler;
+    ExceptionHandler m_exceptionHandler;
 
     std::list<Middleware> m_middlewares;
 
@@ -438,6 +489,14 @@ Router& Router::setMethodNotAllowedHandler(LowLevelHandler handler)
     return *this;
 }
 
+Router& Router::setExceptionHandler(ExceptionHandler handler)
+{
+    assert(handler != nullptr);   // NOLINT
+
+    m_root->setErrorHandler(std::move(handler));
+    return *this;
+}
+
 RouteResult Router::route(std::string_view method, std::string_view path) const
 {
     RouteResult result;
@@ -451,11 +510,23 @@ RouteResult Router::route(std::string_view method, std::string_view path) const
         return result;
     }
 
-    result.handler = bestNode->findMethodHandler(method);
-    if (result.handler == nullptr) {
+    auto nodeHandler = bestNode->findMethodHandler(method);
+    if (nodeHandler == nullptr) {
         result.handler = bestNode->methodNotAllowedHandler();
         return result;
     }
+
+    result.handler = [fn = std::move(nodeHandler), this, normalizedPath](RequestContext& ctx) {
+        try {
+            return fn(ctx).fail([&ctx, this, normalizedPath](std::exception_ptr e) {
+                processException(ctx, std::move(e), normalizedPath);
+            });
+        } catch (...) {
+            const auto [found, node, bestNodeDepth] = m_root->findNode(normalizedPath);
+            processException(ctx, std::current_exception(), normalizedPath);
+            return nhope::makeReadyFuture();
+        }
+    };
 
     result.middlewares = bestNode->middlewares();
     const auto processedPath = limitPathByDepth(normalizedPath, bestNodeDepth);
@@ -496,6 +567,13 @@ Router& Router::addRoute(std::string_view method, std::string_view resource, Low
 
     node->setMethodHandler(method, std::move(handler));
     return *this;
+}
+
+void Router::processException(RequestContext& ctx, std::exception_ptr e, std::string_view normalizedPath) const
+{
+    const auto [found, node, bestNodeDepth] = m_root->findNode(normalizedPath);
+    assert(found && "node must be founded");   // NOLINT
+    node->exceptionHandler()(ctx, std::move(e));
 }
 
 }   // namespace royalbed::server
