@@ -1,5 +1,8 @@
+#include <exception>
 #include <set>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
@@ -28,113 +31,95 @@ namespace {
 using namespace std::literals;
 using namespace royalbed::server;
 
+LowLevelHandler makeHandler(std::string_view status)
+{
+    return [status](RequestContext& ctx) {
+        ctx.responce.statusMessage = status;
+        return nhope::makeReadyFuture();
+    };
+}
+
+class HandlerTester
+{
+    Router& m_router;
+    nhope::ThreadExecutor m_th;
+
+    RequestContext context()
+    {
+        return RequestContext{
+          .num = 1,
+          .router = m_router,
+          .aoCtx = nhope::AOContext(m_th),
+        };
+    }
+
+public:
+    explicit HandlerTester(Router& router)
+      : m_router(router)
+    {}
+
+    void check(std::string_view method, std::string_view path, std::string_view awaitedStatus)
+    {
+        auto ctx = context();
+        m_router.route(method, path).handler(ctx).get();
+        EXPECT_EQ(ctx.responce.statusMessage, awaitedStatus);
+    }
+};
+
 }   // namespace
 
 TEST(Router, MethodHandlerForRoot)   // NOLINT
 {
-    constexpr auto getMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto postMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto putMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto patchMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto optionsMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto headMethod = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-
     Router router;
     router
-      .get("/", getMethod)   //
-      .post("/", postMethod)
-      .put("/", putMethod)
-      .patch("/", patchMethod)
-      .options("/", optionsMethod)
-      .head("/", headMethod);
+      .get("/", makeHandler("get"))   //
+      .post("/", makeHandler("post"))
+      .put("/", makeHandler("put"))
+      .patch("/", makeHandler("patch"))
+      .options("/", makeHandler("options"))
+      .head("/", makeHandler("head"));
 
-    EXPECT_EQ(router.route("GET", "/").handler.target_type(), typeid(getMethod));
-    EXPECT_EQ(router.route("POST", "/").handler.target_type(), typeid(postMethod));
-    EXPECT_EQ(router.route("PUT", "/").handler.target_type(), typeid(putMethod));
-    EXPECT_EQ(router.route("PATCH", "/").handler.target_type(), typeid(patchMethod));
-    EXPECT_EQ(router.route("OPTIONS", "/").handler.target_type(), typeid(optionsMethod));
-    EXPECT_EQ(router.route("HEAD", "/").handler.target_type(), typeid(headMethod));
+    HandlerTester test(router);
+    test.check("GET", "/", "get");
+    test.check("POST", "/", "post");
+    test.check("PUT", "/", "put");
+    test.check("PATCH", "/", "patch");
+    test.check("OPTIONS", "/", "options");
+    test.check("HEAD", "/", "head");
 }
 
 TEST(Router, AddResources)   // NOLINT
 {
-    constexpr auto root = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto a = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto b = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto c = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto d = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto e = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto f = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-
     Router router;
-    router.get("/", root);
-    router.get("/aaaa", a);
-    router.get("/aaaa/cc", c);
-    router.get("/aaaa/dd", d);
-    router.get("/bbbb/ee/f", f);
-    router.get("/bbbb/ee", e);
-    router.get("/bbbb", b);
-
-    EXPECT_EQ(router.route("GET", "/").handler.target_type(), typeid(root));
-    EXPECT_EQ(router.route("GET", "/aaaa").handler.target_type(), typeid(a));
-    EXPECT_EQ(router.route("GET", "/bbbb").handler.target_type(), typeid(b));
-    EXPECT_EQ(router.route("GET", "/aaaa/cc").handler.target_type(), typeid(c));
-    EXPECT_EQ(router.route("GET", "/aaaa/dd").handler.target_type(), typeid(d));
-    EXPECT_EQ(router.route("GET", "/bbbb/ee").handler.target_type(), typeid(e));
-    EXPECT_EQ(router.route("GET", "/bbbb/ee/f").handler.target_type(), typeid(f));
+    router.get("/", makeHandler("root"));
+    router.get("/aaaa", makeHandler("a"));
+    router.get("/aaaa/cc", makeHandler("c"));
+    router.get("/aaaa/dd", makeHandler("d"));
+    router.get("/bbbb/ee/f", makeHandler("f"));
+    router.get("/bbbb/ee", makeHandler("e"));
+    router.get("/bbbb", makeHandler("b"));
+    HandlerTester test(router);
+    test.check("GET", "/", "root");
+    test.check("GET", "/aaaa", "a");
+    test.check("GET", "/bbbb", "b");
+    test.check("GET", "/aaaa/cc", "c");
+    test.check("GET", "/aaaa/dd", "d");
+    test.check("GET", "/bbbb/ee", "e");
+    test.check("GET", "/bbbb/ee/f", "f");
 }
 
 TEST(Router, AddResourcesWithParams)   // NOLINT
 {
-    constexpr auto root = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto a = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto b = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto c = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-
     Router router;
-    router.get("/", root);
-    router.get("/prefix/:id/:repo/aaaaa", a);
-    router.get("/prefix/:name/:project/bbbbbb", b);
-    router.get("/prefix/ccccc/bbbbbb", c);
-
-    EXPECT_EQ(router.route("GET", "/").handler.target_type(), typeid(root));
-    EXPECT_EQ(router.route("GET", "/prefix/10000/nhope/aaaaa").handler.target_type(), typeid(a));
-    EXPECT_EQ(router.route("GET", "/prefix/xxxxx/yyyyyyy/bbbbbb").handler.target_type(), typeid(b));
-    EXPECT_EQ(router.route("GET", "/prefix/ccccc/bbbbbb").handler.target_type(), typeid(c));
+    router.get("/", makeHandler("root"));
+    router.get("/prefix/:id/:repo/aaaaa", makeHandler("a"));
+    router.get("/prefix/:name/:project/bbbbbb", makeHandler("b"));
+    router.get("/prefix/ccccc/bbbbbb", makeHandler("c"));
+    HandlerTester test(router);
+    test.check("GET", "/", "root");
+    test.check("GET", "/prefix/10000/nhope/aaaaa", "a");
+    test.check("GET", "/prefix/xxxxx/yyyyyyy/bbbbbb", "b");
+    test.check("GET", "/prefix/ccccc/bbbbbb", "c");
 }
 
 TEST(Router, ExtractParamsFromPath)   // NOLINT
@@ -184,64 +169,35 @@ TEST(Router, ExtractParamsFromPath)   // NOLINT
 
 TEST(Router, NormalizePath)   //  NOLINT
 {
-    constexpr auto a = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-
     Router router;
-    router.get("//a/b/..///c/d/", a);
-
-    EXPECT_EQ(router.route("GET", "/a/c/d").handler.target_type(), typeid(a));
-    EXPECT_EQ(router.route("GET", "a/../a//c/d").handler.target_type(), typeid(a));
+    router.get("//a/b/..///c/d/", makeHandler("a"));
+    HandlerTester test(router);
+    test.check("GET", "/a/c/d", "a");
+    test.check("GET", "a/../a//c/d", "a");
 }
 
 TEST(Router, Use)   //  NOLINT
 {
-    constexpr auto root = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto subroot = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto a = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto b = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto c = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto d = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto e = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-    constexpr auto f = [](RequestContext& /*ctx*/) {
-        return nhope::makeReadyFuture();
-    };
-
     Router subrouter;
-    subrouter.get("/", subroot);
-    subrouter.get("/a", a);
-    subrouter.post("/a/b", b);
-    subrouter.put("/a/b/:c", c);
+    subrouter.get("/", makeHandler("subroot"));
+    subrouter.get("/a", makeHandler("a"));
+    subrouter.post("/a/b", makeHandler("b"));
+    subrouter.put("/a/b/:c", makeHandler("c"));
 
     Router router;
-    router.get("/", root);
-    router.get("/a/b", d);
-    router.get("/b", e);
+    router.get("/", makeHandler("root"));
+    router.get("/a/b", makeHandler("d"));
+    router.get("/b", makeHandler("e"));
     router.use("/b", std::move(subrouter));
-    router.get("/b/f", f);
-
-    EXPECT_EQ(router.route("GET", "/").handler.target_type(), typeid(root));
-    EXPECT_EQ(router.route("GET", "/b").handler.target_type(), typeid(subroot));
-    EXPECT_EQ(router.route("GET", "/b/a").handler.target_type(), typeid(a));
-    EXPECT_EQ(router.route("POST", "/b/a/b").handler.target_type(), typeid(b));
-    EXPECT_EQ(router.route("PUT", "/b/a/b/c:").handler.target_type(), typeid(c));
-    EXPECT_EQ(router.route("GET", "/a/b").handler.target_type(), typeid(d));
-    EXPECT_EQ(router.route("GET", "/b/f").handler.target_type(), typeid(f));
+    router.get("/b/f", makeHandler("f"));
+    HandlerTester test(router);
+    test.check("GET", "/", "root");
+    test.check("GET", "/b", "subroot");
+    test.check("GET", "/b/a", "a");
+    test.check("POST", "/b/a/b", "b");
+    test.check("PUT", "/b/a/b/c:", "c");
+    test.check("GET", "/a/b", "d");
+    test.check("GET", "/b/f", "f");
 }
 
 TEST(Router, NotFound)   // NOLINT
@@ -474,4 +430,33 @@ TEST(Router, BodyHandler)   // NOLINT
     const auto body = nhope::readAll(*ctx.responce.body).get();
     const auto json = nlohmann::json::parse(body.begin(), body.end());
     EXPECT_EQ(json.get<int>(), 4);
+}
+
+TEST(Router, ExceptionHandler)   // NOLINT
+{
+    {
+        Router router;
+        router.get("/", []() {
+            throw std::runtime_error("error");
+        });
+        HandlerTester test(router);
+        test.check("GET", "/", "Internal Server Error");
+    }
+
+    Router router;
+    router.get("/some/", []() {
+        throw std::runtime_error("error");
+    });
+
+    router.get("/", []() {
+        return nhope::makeExceptionalFuture(std::make_exception_ptr(std::runtime_error("error")));
+    });
+
+    router.setExceptionHandler([](RequestContext& ctx, const std::exception_ptr&) {
+        ctx.responce.statusMessage = "FAIL";
+    });
+
+    HandlerTester test(router);
+    test.check("GET", "/some", "FAIL");
+    test.check("GET", "/", "FAIL");
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <list>
 #include <memory>
 #include <string>
@@ -50,6 +51,7 @@ public:
 
     Router& setNotFoundHandler(LowLevelHandler handler);
     Router& setMethodNotAllowedHandler(LowLevelHandler handler);
+    Router& setExceptionHandler(ExceptionHandler handler);
 
     [[nodiscard]] RouteResult route(std::string_view method, std::string_view path) const;
     [[nodiscard]] std::vector<std::string> allowMethods(std::string_view path) const;
@@ -100,6 +102,7 @@ public:
 
 private:
     Router& addRoute(std::string_view method, std::string_view resource, LowLevelHandler handler);
+    void processException(RequestContext& ctx, std::exception_ptr e, std::string_view normalizedPath) const;
 
     class Node;
     std::unique_ptr<Node> m_root;
