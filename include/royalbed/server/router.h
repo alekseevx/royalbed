@@ -11,6 +11,7 @@
 #include "nhope/async/ao-context.h"
 #include "nhope/async/future.h"
 
+#include "royalbed/common/http-status.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
@@ -57,45 +58,45 @@ public:
     [[nodiscard]] std::vector<std::string> allowMethods(std::string_view path) const;
 
     template<HightLevelHandler Handler>
-    Router& get(std::string_view resource, Handler&& handler)
+    Router& get(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& post(std::string_view resource, Handler&& handler)
+    Router& post(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Created)
     {
-        return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& put(std::string_view resource, Handler&& handler)
+    Router& put(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& patch(std::string_view resource, Handler&& handler)
+    Router& patch(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& options(std::string_view resource, Handler&& handler)
+    Router& options(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& head(std::string_view resource, Handler&& handler)
+    Router& head(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
-    Router& del(std::string_view resource, Handler&& handler)
+    Router& del(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler)));
+        return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     [[nodiscard]] std::vector<std::string> resources() const;
