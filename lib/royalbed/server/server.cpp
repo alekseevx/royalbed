@@ -75,13 +75,14 @@ private:
 
     void sessionFinished(std::uint32_t /*sessionNum*/) override
     {
-        assert(m_aoCtx.workInThisThread());   // NOLINT
+        assert(m_aoCtx.workInThisThread() || !m_aoCtx.isOpen());   // NOLINT
         --m_activeSeesionCount;
     }
 
     void connectionClosed(std::uint32_t connectionNum) override
     {
-        assert(m_aoCtx.workInThisThread());   // NOLINT
+        assert(m_aoCtx.workInThisThread() || !m_aoCtx.isOpen());   // NOLINT
+
         --m_activeConnectionCount;
         m_log->info("The connection with num={} closed", connectionNum);
     }
