@@ -17,7 +17,7 @@ option(ROYALBED_MEMORY_SANITIZER_ENABLED "enable memory sanitizer" OFF)
 cmrc_add_resource_library(swaggerFiles
     NAMESPACE royalbed::swagger
     swagger/index.html
-    # swagger-ui v3.43.0
+    # swagger-ui v4.6.1
     swagger/ui/favicon-16x16.png
     swagger/ui/favicon-32x32.png
     swagger/ui/swagger-ui-bundle.js.gz
@@ -27,12 +27,21 @@ cmrc_add_resource_library(swaggerFiles
 target_compile_features(swaggerFiles PRIVATE cxx_std_17)
 target_link_libraries(${BASTARD_PACKAGE_NAME} swaggerFiles)
 
-if(ROYALBED_THREAD_SANITIZER_ENABLED)        
+cmrc_add_resource_library(redocFiles
+    NAMESPACE royalbed::redoc
+    redoc/index.html
+    # redoc 2.0.0-rc.64
+    redoc/redoc.standalone.js.gz
+)
+target_compile_features(redocFiles PRIVATE cxx_std_17)
+target_link_libraries(${BASTARD_PACKAGE_NAME} redocFiles)
+
+if(ROYALBED_THREAD_SANITIZER_ENABLED)
     enable_thread_sanitizer(
         blacklist ${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
 endif()
 
-if(ROYALBED_COVERAGE_ENABLED)    
+if(ROYALBED_COVERAGE_ENABLED)
     message(STATUS "royalbed enabling coverage")
     include(cmake/CodeCoverage.cmake)
     append_coverage_compiler_flags()
@@ -47,7 +56,7 @@ if(ROYALBED_ADDRESS_SANITIZER_ENABLED)
     enable_address_sanitizer(TARGET ${BASTARD_PACKAGE_NAME})
 endif()
 
-if(ROYALBED_MEMORY_SANITIZER_ENABLED)        
+if(ROYALBED_MEMORY_SANITIZER_ENABLED)
     enable_memory_sanitizer(
         TARGET ${BASTARD_PACKAGE_NAME} 
         blacklist ${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
