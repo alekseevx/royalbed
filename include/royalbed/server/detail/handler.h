@@ -16,6 +16,7 @@
 
 #include "nhope/io/io-device.h"
 #include "nlohmann/json.hpp"
+
 #include "royalbed/common/request.h"
 #include "royalbed/server/param.h"
 #include "royalbed/server/low-level-handler.h"
@@ -144,12 +145,13 @@ nhope::Future<void> fetchBodyAndCallHandler(Handler handler, RequestContext& ctx
 }
 
 template<typename Handler>
-LowLevelHandler makeLowLevelHandler(Handler&& handler)
+LowLevelHandler makeLowLevelHandler(Handler&& handler, int defaultStatus)
 {
     checkRequestHandler<Handler>();
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
 
-    return [handler = std::move(handler)](RequestContext& ctx) {
+    return [handler = std::move(handler), defaultStatus](RequestContext& ctx) {
+        ctx.responce.status = defaultStatus;
         constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
         constexpr bool paramHasBody = bodyIndex != -1;
         if constexpr (paramHasBody) {
