@@ -8,6 +8,7 @@
 #include "nhope/async/io-context-executor.h"
 
 #include "royalbed/server/http-status.h"
+#include "royalbed/server/redoc.h"
 #include "royalbed/server/server.h"
 #include "royalbed/server/router.h"
 #include "royalbed/server/swagger.h"
@@ -36,8 +37,9 @@ int main()
         auto router = Router();
         vru_srv::endpoints::publicEndpoints(router);
 
-        auto swaggerFs = cmrc::vru_srv::get_filesystem();
-        swagger(router, swaggerFs, "api/example.yml");
+        auto openApiFS = cmrc::vru_srv::get_filesystem();
+        swagger(router, openApiFS, "api/example.yml");
+        redoc(router, openApiFS, "api/example.yml");
 
         auto server = Server::start(aoCtx, {
                                              .bindAddress = "0.0.0.0",

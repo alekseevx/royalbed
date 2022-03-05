@@ -27,6 +27,15 @@ cmrc_add_resource_library(swaggerFiles
 target_compile_features(swaggerFiles PRIVATE cxx_std_17)
 target_link_libraries(${BASTARD_PACKAGE_NAME} swaggerFiles)
 
+cmrc_add_resource_library(redocFiles
+    NAMESPACE royalbed::redoc
+    redoc/index.html
+    # redoc 2.0.0-rc.64
+    redoc/redoc.standalone.js.gz
+)
+target_compile_features(redocFiles PRIVATE cxx_std_17)
+target_link_libraries(${BASTARD_PACKAGE_NAME} redocFiles)
+
 if(ROYALBED_THREAD_SANITIZER_ENABLED)
     enable_thread_sanitizer(
         blacklist ${CMAKE_CURRENT_LIST_DIR}/sanitize-blacklist)
