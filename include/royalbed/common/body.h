@@ -107,10 +107,11 @@ Body<T> parseBody(const Headers& /*headers*/, const std::vector<std::uint8_t>& r
         // TODO parse content
         const auto jsonValue = nlohmann::json::parse(rawBody.begin(), rawBody.end());
         return jsonValue.get<T>();
-
     } catch (const std::exception& ex) {
-        const auto message = fmt::format("Failed to parse request body for {0}: {1}",
-                                         typeid(T).name(), ex.what());
+        const auto message = fmt::format("Failed to parse request body for {0}: {1}", typeid(T).name(), ex.what());
+        throw HttpError(HttpStatus::BadRequest, message);
+    } catch (...) {
+        const auto message = fmt::format("Failed to parse request body for {0}", typeid(T).name());
         throw HttpError(HttpStatus::BadRequest, message);
     }
 }
