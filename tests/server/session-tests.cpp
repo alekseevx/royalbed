@@ -100,7 +100,8 @@ TEST(Session, OnlyHandler)   // NOLINT
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
-    EXPECT_EQ(responce, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+    EXPECT_TRUE(responce.find("HTTP/1.1 200 OK\r\n") != std::string::npos);
+    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
 }
 
 TEST(Session, OnlyMiddlewares)   // NOLINT
@@ -207,7 +208,9 @@ TEST(Session, ExceptionInHandler)   // NOLINT
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto responce = out->takeContent();
-    EXPECT_EQ(responce, "HTTP/1.1 400 XXX\r\nConnection: close\r\n\r\n");
+    EXPECT_TRUE(responce.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
+    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
+    EXPECT_TRUE(responce.find("Date:") != std::string::npos);
 }
 
 TEST(Session, ExceptionInMiddleware)   // NOLINT

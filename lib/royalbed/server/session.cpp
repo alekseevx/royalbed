@@ -1,4 +1,6 @@
+#include <array>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -28,6 +30,16 @@
 namespace royalbed::server::detail {
 
 namespace {
+
+std::string gmtDateTime()
+{
+    constexpr auto bufSize{100};
+    std::array<char, bufSize> dateBuffer{};
+    const auto curTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    const char* fmt = "%a, %d %Y %b %H:%M:%S GMT";
+    const auto count = std::strftime(dateBuffer.data(), bufSize, fmt, std::gmtime(&curTime));
+    return {dateBuffer.data(), count};
+}
 
 template<typename AsyncFunc>
 auto safeCall(RequestContext& ctx, AsyncFunc&& func)
@@ -183,6 +195,7 @@ private:
 
         // TODO: Support keep-alive
         m_requestCtx.responce.headers["Connection"] = "close";
+        m_requestCtx.responce.headers["Date"] = gmtDateTime();
 
         return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then(aoCtx(), [this](auto size) {
             m_requestCtx.log->debug("responce has been sent: {} bytes", size);
