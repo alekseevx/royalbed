@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <utility>
 
 #include "royalbed/server/detail/extract-param.h"
@@ -71,7 +72,7 @@ ParamProperties<T> makeProperties(std::string_view name)
     return props;
 }
 
-template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
+template<typename T, StringLiteral Name, ParametrSettings<T>... Properties>
 class Param final
 {
 public:
@@ -111,8 +112,13 @@ public:
 
     static const ParamProperties<T>& props()
     {
-        static const auto props = makeProperties<T, Properties...>(name);
+        static const auto props = makeProperties<T, Properties...>(Name);
         return props;
+    }
+
+    static constexpr std::string_view name()
+    {
+        return Name;
     }
 
 private:

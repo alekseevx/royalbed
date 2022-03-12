@@ -47,6 +47,10 @@ TEST(Param, simple)   // NOLINT
     constexpr auto testParam = "someTest"sv;
     constexpr auto queryParam = "someTest2"sv;
 
+    using P = PathParam<int, "someTest">;
+
+    EXPECT_EQ(testParam, P::name());
+
     nhope::ThreadExecutor t;
     nhope::AOContext aoCtx(t);
     Router router;
@@ -66,6 +70,8 @@ TEST(Param, simple)   // NOLINT
     reqCtx.rawPathParams = res.rawPathParams;
 
     PathParam<int, "someTest"> param(reqCtx);
+    EXPECT_EQ(param.name(), "someTest");
+
     PathParam<int, "notExists", NotRequired, DefaultInt<1>> defParam(reqCtx);
     QueryParam<std::string, "someTest2"> qParam(reqCtx);
 
