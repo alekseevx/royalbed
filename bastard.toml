@@ -19,7 +19,7 @@ spdlog = { git = "git@gitlab.olimp.lan:gabime/spdlog.git", tag = "v1.9.2" }
 SPDLOG_FMT_EXTERNAL = true
 
 [dev-dependencies]
-gtest = { git = "git@gitlab.olimp.lan:google/googletest.git", branch="main" }
+gtest = { git = "git@gitlab.olimp.lan:google/googletest.git", branch="file-info" }
 
 [options.gtest]
 gtest_force_shared_crt = "true"
