@@ -1,11 +1,15 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <type_traits>
@@ -23,6 +27,7 @@
 #include "royalbed/common/detail/traits.h"
 #include "royalbed/common/body.h"
 #include "royalbed/server/request-context.h"
+#include "royalbed/server/string-literal.h"
 
 namespace royalbed::server::detail {
 
@@ -46,6 +51,24 @@ constexpr void checkRequestHandlerResult()
                   "The handler result cannot be converted to json."
                   "Please define a to_json function for it."
                   "See https://github.com/nlohmann/json");
+}
+
+template<typename Handler, StringLiteral resource>
+consteval void checkResource()
+{
+    using namespace nhope;
+    using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+
+    constexpr int paramIndex = findArgument<FnProps, IsParamType>();
+
+    if constexpr (paramIndex != -1) {
+        using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
+        // TODO add to expect "/:"
+        constexpr std::string_view expectStr = HandlerParam::name();
+        constexpr std::string_view resourceStr = resource;
+        constexpr auto pos = resourceStr.find(expectStr);
+        static_assert(pos != std::string_view::npos, "need param in resource");
+    }
 }
 
 template<typename Handler>

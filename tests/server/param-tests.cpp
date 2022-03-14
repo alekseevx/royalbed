@@ -96,6 +96,9 @@ TEST(Param, invalid)   // NOLINT
         return nhope::makeReadyFuture();
     });
 
+    using MustHaveParam = PathParam<int, "mustHave">;
+    router.get<"/api/:mustHave/">([](MustHaveParam p) {});
+
     RequestContext reqCtx{
       .num = 1,
       .log = nullLogger(),
@@ -103,6 +106,7 @@ TEST(Param, invalid)   // NOLINT
       .request = {.uri = Uri::parseRelative("/prefix/" + maxIntStr)},
       .aoCtx = nhope::AOContext(aoCtx),
     };
+
     const auto res = router.route("GET", reqCtx.request.uri.path);
     reqCtx.rawPathParams = res.rawPathParams;
 
