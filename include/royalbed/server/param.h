@@ -147,8 +147,13 @@ template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
 static constexpr bool isQueryOrParam<Param<T, name, Properties...>> = true;
 
 template<typename T>
-struct IsParamType
+static constexpr bool isParam = false;
+template<typename T, StringLiteral name, ParametrSettings<T>... Properties>
+static constexpr bool isParam<Param<T, name, ParamLocProp<ParamLocation::Path>, Properties...>> = true;
+
+template<typename T>
+struct IsPathParamType
 {
-    static constexpr bool value = isQueryOrParam<T>;
+    static constexpr bool value = isParam<T>;
 };
 }   // namespace royalbed::server

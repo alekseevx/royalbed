@@ -9,7 +9,7 @@
 #include "fmt/core.h"
 
 #include "royalbed/server/param.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/request-context.h"
 
 namespace royalbed::server::detail {

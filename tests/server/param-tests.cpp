@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "royalbed/server/error.h"
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context.h"
@@ -102,9 +103,12 @@ TEST(Param, invalid)   // NOLINT
     router.get<"/api/:mustHave/:secondHave">([](MustHaveParam p, MustHaveSecondParam x) {});
 
     // NOLINTNEXTLINE
-    EXPECT_THROW(router.get("/prefix/:wrongParam", [](MustHaveParam) {}), std::runtime_error);
+    EXPECT_THROW(router.get("/prefix/:wrongParam", [](MustHaveParam) {}), RouterError);
     // NOLINTNEXTLINE
-    EXPECT_THROW(router.get("/prefix/:mustHaveFail", [](MustHaveParam) {}), std::runtime_error);
+    EXPECT_THROW(router.get("/prefix/:mustHaveFail", [](MustHaveParam) {}), RouterError);
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:mustHave/:secondHaveWrong", [](MustHaveParam, MustHaveSecondParam) {}),
+                 RouterError);
 
     RequestContext reqCtx{
       .num = 1,

@@ -19,6 +19,7 @@
 
 #include "nlohmann/json.hpp"
 #include "royalbed/common/body.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
@@ -349,7 +350,7 @@ TEST(Router, HightLevelHandler)   // NOLINT
 {
     Router router;
 
-    using intP = Param<int, "val">;
+    using intP = PathParam<int, "val">;
     router.get("/some/:val", [](const intP& p) {
         return p.get() + 2;
     });
@@ -357,6 +358,12 @@ TEST(Router, HightLevelHandler)   // NOLINT
     router.get("/some/", [] {
         return "42";
     });
+
+    EXPECT_THROW(router.post("/:wrongValParam", [](intP p) {}), RouterError);   //NOLINT
+    EXPECT_THROW(router.put("/:wrongValParam", [](intP p) {}), RouterError);    //NOLINT
+    EXPECT_NO_THROW(router.post("/:val", [](intP p) {}));                       //NOLINT
+    EXPECT_NO_THROW(router.put("/:val", [](intP p) {}));                        //NOLINT
+    router.put<"/:val">([](intP p) {});
 
     router.get("/some_direct_json/", [] {
         return nlohmann::json{

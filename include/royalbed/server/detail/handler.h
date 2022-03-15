@@ -23,22 +23,15 @@
 #include "nlohmann/json.hpp"
 
 #include "royalbed/common/request.h"
-#include "royalbed/server/param.h"
-#include "royalbed/server/low-level-handler.h"
 #include "royalbed/common/detail/traits.h"
 #include "royalbed/common/body.h"
+#include "royalbed/server/param.h"
+#include "royalbed/server/error.h"
+#include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/string-literal.h"
 
 namespace royalbed::server::detail {
-
-class RouterError : public std::runtime_error
-{
-public:
-    explicit RouterError(const std::string& message)
-      : std::runtime_error(message)
-    {}
-};
 
 template<typename T>
 static constexpr bool isRequstHandlerArg = isQueryOrParam<T> || common::isBody<T> || std::same_as<T, RequestContext>;
@@ -62,6 +55,12 @@ constexpr void checkRequestHandlerResult()
                   "See https://github.com/nlohmann/json");
 }
 
+template<typename FnProps, int Index>
+constexpr int nextPathParamIndex()
+{
+    return nhope::findArgument<FnProps, IsPathParamType, Index>();
+}
+
 template<typename FnProps, StringLiteral resource, int Index>
 constexpr void checkParamIndex()
 {
@@ -69,20 +68,18 @@ constexpr void checkParamIndex()
     if constexpr (Index == -1) {
         return;
     }
-    constexpr int paramIndex = findArgument<FnProps, IsParamType, Index>();
+    constexpr int paramIndex = nextPathParamIndex<FnProps, Index>();
     if constexpr (paramIndex != -1) {
         using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
         constexpr std::string_view paramName = HandlerParam::name();
-        constexpr auto paramPrefix = toArray("/:");
-        constexpr auto expect =
-          concatArrays(paramPrefix, toArray<paramName.size()>(paramName), std::array<char, 1>{{0}});
+        constexpr auto expect = concatArrays(toArray("/:"), toArray<paramName.size()>(paramName));
         constexpr std::string_view resourceStr = resource;
-        constexpr auto pos = resourceStr.find(expect.data());
+        constexpr auto pos = resourceStr.find({expect.begin(), expect.end()});
         if constexpr (pos == std::string_view::npos) {
             static_assert(pos != std::string_view::npos, "need param in resource");
             return;
         }
-        constexpr auto behindParamPos = resourceStr.begin() + pos + paramName.size() + paramPrefix.size();
+        constexpr auto behindParamPos = resourceStr.begin() + pos + expect.size();
         if constexpr (behindParamPos != resourceStr.end()) {
             static_assert(*behindParamPos == '/', "bad param name");
         }
@@ -97,18 +94,16 @@ void checkParamIndex(std::string_view resource)
     if (Index == -1) {
         return;
     }
-    constexpr int paramIndex = findArgument<FnProps, IsParamType, Index>();
+    constexpr int paramIndex = nextPathParamIndex<FnProps, Index>();
     if constexpr (paramIndex != -1) {
         using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
         constexpr std::string_view paramName = HandlerParam::name();
-        constexpr auto paramPrefix = toArray("/:");
-        constexpr auto expect =
-          concatArrays(paramPrefix, toArray<paramName.size()>(paramName), std::array<char, 1>{{0}});
-        const auto pos = resource.find(expect.data());
+        constexpr auto expect = concatArrays(toArray("/:"), toArray<paramName.size()>(paramName));
+        const auto pos = resource.find({expect.data(), expect.size()});
         if (pos == std::string_view::npos) {
             throw RouterError(fmt::format("expected param: \"{}\" in resource path", paramName));
         }
-        const auto behindParamPos = resource.begin() + pos + paramName.size() + paramPrefix.size();
+        const auto behindParamPos = resource.begin() + pos + expect.size();
         if (behindParamPos != resource.end() && *behindParamPos != '/') {
             throw RouterError(fmt::format("bad param name: \"{}{}\" in resource path", paramName, *behindParamPos));
         }

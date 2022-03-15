@@ -19,7 +19,7 @@
 #include "royalbed/server/detail/receive-request.h"
 #include "royalbed/server/detail/send-responce.h"
 #include "royalbed/server/detail/session.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"

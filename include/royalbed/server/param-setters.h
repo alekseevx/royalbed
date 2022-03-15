@@ -10,7 +10,7 @@
 
 #include "royalbed/server/string-literal.h"
 #include "royalbed/server/param-properties.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
 
 namespace royalbed::server {

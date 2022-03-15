@@ -4,6 +4,7 @@
 #include <exception>
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 #include <stop_token>
 #include <string_view>
 #include <string>
@@ -27,6 +28,7 @@
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/responce.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/router.h"
 
 namespace royalbed::server {
@@ -158,6 +160,10 @@ const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, st
 const auto nullHandler = LowLevelHandler{nullptr};
 
 }   // namespace
+
+RouterError::RouterError(const std::string& message)
+  : std::runtime_error(message)
+{}
 
 class Router::Node final
 {
