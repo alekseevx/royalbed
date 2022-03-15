@@ -100,7 +100,7 @@ TEST(Param, invalid)   // NOLINT
 
     using MustHaveParam = PathParam<int, "mustHave">;
     using MustHaveSecondParam = PathParam<int, "secondHave">;
-    router.get<"/api/:mustHave/:secondHave">([](MustHaveParam p, MustHaveSecondParam x) {});
+    router.get<"/api/:mustHave/:secondHave">([](MustHaveParam p, const MustHaveSecondParam& x) {});
 
     // NOLINTNEXTLINE
     EXPECT_THROW(router.get("/prefix/:wrongParam", [](MustHaveParam) {}), RouterError);

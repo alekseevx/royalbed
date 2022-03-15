@@ -70,7 +70,8 @@ constexpr void checkParamIndex()
     }
     constexpr int paramIndex = nextPathParamIndex<FnProps, Index>();
     if constexpr (paramIndex != -1) {
-        using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
+        using HandlerParam = std::decay_t<typename FnProps::template ArgumentType<paramIndex>>;
+
         constexpr std::string_view paramName = HandlerParam::name();
         constexpr auto expect = concatArrays(toArray("/:"), toArray<paramName.size()>(paramName));
         constexpr std::string_view resourceStr = resource;
@@ -96,7 +97,8 @@ void checkParamIndex(std::string_view resource)
     }
     constexpr int paramIndex = nextPathParamIndex<FnProps, Index>();
     if constexpr (paramIndex != -1) {
-        using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
+        using HandlerParam = std::decay_t<typename FnProps::template ArgumentType<paramIndex>>;
+
         constexpr std::string_view paramName = HandlerParam::name();
         constexpr auto expect = concatArrays(toArray("/:"), toArray<paramName.size()>(paramName));
         const auto pos = resource.find({expect.data(), expect.size()});
