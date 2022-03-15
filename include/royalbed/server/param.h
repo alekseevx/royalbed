@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include "royalbed/server/detail/extract-param.h"
@@ -154,6 +155,6 @@ static constexpr bool isParam<Param<T, name, ParamLocProp<ParamLocation::Path>, 
 template<typename T>
 struct IsPathParamType
 {
-    static constexpr bool value = isParam<T>;
+    static constexpr bool value = isParam<std::decay_t<T>>;
 };
 }   // namespace royalbed::server
