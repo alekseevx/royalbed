@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -97,7 +98,13 @@ TEST(Param, invalid)   // NOLINT
     });
 
     using MustHaveParam = PathParam<int, "mustHave">;
-    router.get<"/api/:mustHave/">([](MustHaveParam p) {});
+    using MustHaveSecondParam = PathParam<int, "secondHave">;
+    router.get<"/api/:mustHave/:secondHave">([](MustHaveParam p, MustHaveSecondParam x) {});
+
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:wrongParam", [](MustHaveParam) {}), std::runtime_error);
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:mustHaveFail", [](MustHaveParam) {}), std::runtime_error);
 
     RequestContext reqCtx{
       .num = 1,

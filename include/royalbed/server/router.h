@@ -68,6 +68,7 @@ public:
     template<HightLevelHandler Handler>
     constexpr Router& get(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
@@ -77,9 +78,11 @@ public:
         detail::checkResource<Handler, resource>();
         return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
+
     template<HightLevelHandler Handler>
     constexpr Router& post(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Created)
     {
+        detail::checkResource<Handler>(resource);
         return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
@@ -93,6 +96,7 @@ public:
     template<HightLevelHandler Handler>
     constexpr Router& put(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
@@ -105,6 +109,7 @@ public:
     template<HightLevelHandler Handler>
     constexpr Router& patch(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
@@ -116,14 +121,23 @@ public:
     }
 
     template<HightLevelHandler Handler>
+    constexpr Router& options(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler>(resource);
+        return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
+    template<HightLevelHandler Handler>
     constexpr Router& head(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->head(resource, detail::makeLowLevelHandler(resource, std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     constexpr Router& del(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 

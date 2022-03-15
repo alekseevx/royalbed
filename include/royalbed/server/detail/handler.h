@@ -17,6 +17,7 @@
 #include <nhope/async/ao-context.h>
 #include <nhope/async/future.h>
 #include <nhope/utils/type.h>
+#include <nhope/utils/array.h>
 
 #include "nhope/io/io-device.h"
 #include "nlohmann/json.hpp"
@@ -30,6 +31,14 @@
 #include "royalbed/server/string-literal.h"
 
 namespace royalbed::server::detail {
+
+class RouterError : public std::runtime_error
+{
+public:
+    explicit RouterError(const std::string& message)
+      : std::runtime_error(message)
+    {}
+};
 
 template<typename T>
 static constexpr bool isRequstHandlerArg = isQueryOrParam<T> || common::isBody<T> || std::same_as<T, RequestContext>;
@@ -53,22 +62,72 @@ constexpr void checkRequestHandlerResult()
                   "See https://github.com/nlohmann/json");
 }
 
-template<typename Handler, StringLiteral resource>
-consteval void checkResource()
+template<typename FnProps, StringLiteral resource, int Index>
+constexpr void checkParamIndex()
 {
     using namespace nhope;
-    using FnProps = FunctionProps<decltype(std::function(std::declval<Handler>()))>;
-
-    constexpr int paramIndex = findArgument<FnProps, IsParamType>();
-
+    if constexpr (Index == -1) {
+        return;
+    }
+    constexpr int paramIndex = findArgument<FnProps, IsParamType, Index>();
     if constexpr (paramIndex != -1) {
         using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
-        // TODO add to expect "/:"
-        constexpr std::string_view expectStr = HandlerParam::name();
+        constexpr std::string_view paramName = HandlerParam::name();
+        constexpr auto paramPrefix = toArray("/:");
+        constexpr auto expect =
+          concatArrays(paramPrefix, toArray<paramName.size()>(paramName), std::array<char, 1>{{0}});
         constexpr std::string_view resourceStr = resource;
-        constexpr auto pos = resourceStr.find(expectStr);
-        static_assert(pos != std::string_view::npos, "need param in resource");
+        constexpr auto pos = resourceStr.find(expect.data());
+        if constexpr (pos == std::string_view::npos) {
+            static_assert(pos != std::string_view::npos, "need param in resource");
+            return;
+        }
+        constexpr auto behindParamPos = resourceStr.begin() + pos + paramName.size() + paramPrefix.size();
+        if constexpr (behindParamPos != resourceStr.end()) {
+            static_assert(*behindParamPos == '/', "bad param name");
+        }
+        checkParamIndex<FnProps, resource, Index + 1>();
     }
+}
+
+template<typename FnProps, int Index>
+void checkParamIndex(std::string_view resource)
+{
+    using namespace nhope;
+    if (Index == -1) {
+        return;
+    }
+    constexpr int paramIndex = findArgument<FnProps, IsParamType, Index>();
+    if constexpr (paramIndex != -1) {
+        using HandlerParam = typename FnProps::template ArgumentType<paramIndex>;
+        constexpr std::string_view paramName = HandlerParam::name();
+        constexpr auto paramPrefix = toArray("/:");
+        constexpr auto expect =
+          concatArrays(paramPrefix, toArray<paramName.size()>(paramName), std::array<char, 1>{{0}});
+        const auto pos = resource.find(expect.data());
+        if (pos == std::string_view::npos) {
+            throw RouterError(fmt::format("expected param: \"{}\" in resource path", paramName));
+        }
+        const auto behindParamPos = resource.begin() + pos + paramName.size() + paramPrefix.size();
+        if (behindParamPos != resource.end() && *behindParamPos != '/') {
+            throw RouterError(fmt::format("bad param name: \"{}{}\" in resource path", paramName, *behindParamPos));
+        }
+        checkParamIndex<FnProps, Index + 1>(resource);
+    }
+}
+
+template<typename Handler, StringLiteral Resource>
+constexpr void checkResource()
+{
+    using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    checkParamIndex<FnProps, Resource, 0>();
+}
+
+template<typename Handler>
+void checkResource(std::string_view resource)
+{
+    using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
+    checkParamIndex<FnProps, 0>(resource);
 }
 
 template<typename Handler>
