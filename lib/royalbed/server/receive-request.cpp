@@ -17,7 +17,7 @@
 #include "3rdparty/llhttp/llhttp.h"
 
 #include "royalbed/common/detail/body-reader.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/request.h"
 #include "royalbed/server/uri.h"

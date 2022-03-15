@@ -16,6 +16,7 @@
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/detail/handler.h"
+#include "royalbed/server/string-literal.h"
 
 namespace royalbed::server {
 
@@ -57,45 +58,93 @@ public:
     [[nodiscard]] RouteResult route(std::string_view method, std::string_view path) const;
     [[nodiscard]] std::vector<std::string> allowMethods(std::string_view path) const;
 
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& get(Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler, resource>();
+        return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
     template<HightLevelHandler Handler>
     Router& get(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->get(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& post(Handler&& handler, int statusCode = HttpStatus::Created)
+    {
+        detail::checkResource<Handler, resource>();
+        return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     Router& post(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Created)
     {
+        detail::checkResource<Handler>(resource);
         return this->post(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& put(Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler, resource>();
+        return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     Router& put(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->put(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& patch(Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler, resource>();
+        return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
     template<HightLevelHandler Handler>
     Router& patch(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->patch(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& options(Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler, resource>();
+        return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     Router& options(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
         return this->options(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     Router& head(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
-        return this->head(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+        detail::checkResource<Handler>(resource);
+        return this->head(resource, detail::makeLowLevelHandler(resource, std::forward<Handler>(handler), statusCode));
     }
 
     template<HightLevelHandler Handler>
     Router& del(std::string_view resource, Handler&& handler, int statusCode = HttpStatus::Ok)
     {
+        detail::checkResource<Handler>(resource);
+        return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
+    }
+
+    template<StringLiteral resource, HightLevelHandler Handler>
+    constexpr Router& del(Handler&& handler, int statusCode = HttpStatus::Ok)
+    {
+        detail::checkResource<Handler, resource>();
         return this->del(resource, detail::makeLowLevelHandler(std::forward<Handler>(handler), statusCode));
     }
 

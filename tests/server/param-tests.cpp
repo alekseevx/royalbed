@@ -1,7 +1,9 @@
+#include <stdexcept>
 #include <string>
 
 #include <gtest/gtest.h>
 
+#include "royalbed/server/error.h"
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context.h"
@@ -47,6 +49,10 @@ TEST(Param, simple)   // NOLINT
     constexpr auto testParam = "someTest"sv;
     constexpr auto queryParam = "someTest2"sv;
 
+    using P = PathParam<int, "someTest">;
+
+    EXPECT_EQ(testParam, P::name());
+
     nhope::ThreadExecutor t;
     nhope::AOContext aoCtx(t);
     Router router;
@@ -66,6 +72,8 @@ TEST(Param, simple)   // NOLINT
     reqCtx.rawPathParams = res.rawPathParams;
 
     PathParam<int, "someTest"> param(reqCtx);
+    EXPECT_EQ(param.name(), "someTest");
+
     PathParam<int, "notExists", NotRequired, DefaultInt<1>> defParam(reqCtx);
     QueryParam<std::string, "someTest2"> qParam(reqCtx);
 
@@ -90,6 +98,18 @@ TEST(Param, invalid)   // NOLINT
         return nhope::makeReadyFuture();
     });
 
+    using MustHaveParam = PathParam<int, "mustHave">;
+    using MustHaveSecondParam = PathParam<int, "secondHave">;
+    router.get<"/api/:mustHave/:secondHave">([](MustHaveParam p, MustHaveSecondParam x) {});
+
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:wrongParam", [](MustHaveParam) {}), RouterError);
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:mustHaveFail", [](MustHaveParam) {}), RouterError);
+    // NOLINTNEXTLINE
+    EXPECT_THROW(router.get("/prefix/:mustHave/:secondHaveWrong", [](MustHaveParam, MustHaveSecondParam) {}),
+                 RouterError);
+
     RequestContext reqCtx{
       .num = 1,
       .log = nullLogger(),
@@ -97,6 +117,7 @@ TEST(Param, invalid)   // NOLINT
       .request = {.uri = Uri::parseRelative("/prefix/" + maxIntStr)},
       .aoCtx = nhope::AOContext(aoCtx),
     };
+
     const auto res = router.route("GET", reqCtx.request.uri.path);
     reqCtx.rawPathParams = res.rawPathParams;
 

@@ -20,7 +20,7 @@
 #include "nhope/io/string-writter.h"
 
 #include "royalbed/server/detail/session.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/router.h"

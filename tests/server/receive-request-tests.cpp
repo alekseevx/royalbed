@@ -10,7 +10,7 @@
 #include "nhope/io/pushback-reader.h"
 #include "nhope/io/string-reader.h"
 
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/detail/receive-request.h"
 
 #include "helpers/bytes.h"

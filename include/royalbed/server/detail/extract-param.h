@@ -8,7 +8,7 @@
 #include "fmt/core.h"
 
 #include "royalbed/common/detail/string-utils.h"
-#include "royalbed/server/http-error.h"
+#include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/param-properties.h"
 #include "royalbed/server/request-context.h"
