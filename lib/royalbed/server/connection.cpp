@@ -11,6 +11,7 @@
 #include "nhope/io/io-device.h"
 #include "nhope/io/pushback-reader.h"
 
+#include "royalbed/common/detail/uptime.h"
 #include "royalbed/server/detail/session.h"
 #include "royalbed/server/detail/connection.h"
 
@@ -27,6 +28,7 @@ public:
       , m_log(std::move(params.log))
       , m_ctx(params.ctx)
       , m_sock(std::move(params.sock))
+      , m_upTime(m_log, "connection time:")
       , m_aoCtx(parent)
     {
         m_aoCtx.startCancellableTask(
@@ -46,7 +48,7 @@ private:
     void aoContextClose() noexcept override
     {
         m_ctx.connectionClosed(m_num);
-        m_log->info("close");
+        m_log->trace("close");
         delete this;
     }
 
@@ -61,7 +63,7 @@ private:
     void sessionFinished(std::uint32_t sessionNum, bool /*success*/) noexcept override
     {
         m_ctx.sessionFinished(sessionNum);
-        m_log->info("The session with num={} finished", sessionNum);
+        m_log->trace("The session with num={} finished", sessionNum);
         m_aoCtx.close();
     }
 
@@ -69,7 +71,7 @@ private:
     {
         auto [sessionNum, sessionLog] = m_ctx.startSession(m_num);
 
-        m_log->info("Start a new session: num={}", sessionNum);
+        m_log->trace("Start a new session: num={}", sessionNum);
         detail::startSession(m_aoCtx, SessionParams{
                                         .num = sessionNum,
                                         .ctx = *this,
@@ -86,6 +88,8 @@ private:
 
     nhope::TcpSocketPtr m_sock;
     nhope::PushbackReaderPtr m_sessionIn;
+
+    royalbed::common::detail::UpTimeLogger m_upTime;
 
     nhope::AOContext m_aoCtx;
 };
