@@ -7,6 +7,7 @@
 #include "nhope/async/ao-context.h"
 #include "nhope/io/tcp.h"
 
+#include "royalbed/common/detail/uptime.h"
 #include "royalbed/server/detail/connection.h"
 #include "royalbed/server/server.h"
 
@@ -28,16 +29,17 @@ class ServerImpl final
 {
 public:
     ServerImpl(nhope::AOContext& aoCtx, ServerParams&& params)
-      : m_aoCtx(aoCtx)
-      , m_log(params.log)
+      : m_log(params.log)
       , m_tcpServer(startTcpServer(aoCtx, params))
       , m_router(std::move(params.router))
+      , m_upTime(m_log, "service uptime")
+      , m_aoCtx(aoCtx)
     {
         const auto bindAddr = m_tcpServer->bindAddress();
-        m_log->info("Service accepting HTTP connections at http://{}", bindAddr.toString());
+        m_log->info("service accepting HTTP connections at http://{}", bindAddr.toString());
 
         for (const auto& resource : m_router.resources()) {
-            m_log->info("Resource published on route {}", resource);
+            m_log->info("resource published on route {}", resource);
         }
 
         m_aoCtx.exec([this] {
@@ -84,7 +86,7 @@ private:
         assert(m_aoCtx.workInThisThread() || !m_aoCtx.isOpen());   // NOLINT
 
         --m_activeConnectionCount;
-        m_log->info("The connection with num={} closed", connectionNum);
+        m_log->trace("The connection with num={} closed", connectionNum);
     }
 
     void acceptNextConnection()
@@ -93,8 +95,8 @@ private:
             ++m_activeConnectionCount;
             const auto connectionNum = ++m_connectionCounter;
 
-            m_log->info("New connection accepted: num={}, peer={}", connectionNum,
-                        connection->peerAddress().toString());
+            m_log->trace("New connection accepted: num={}, peer={}", connectionNum,
+                         connection->peerAddress().toString());
 
             detail::openConnection(m_aoCtx, {
                                               .num = connectionNum,
@@ -116,6 +118,8 @@ private:
 
     std::uint32_t m_connectionCounter = 0;
     std::uint32_t m_seesionCounter = 0;
+
+    royalbed::common::detail::UpTimeLogger m_upTime;
 
     nhope::AOContext m_aoCtx;
 };

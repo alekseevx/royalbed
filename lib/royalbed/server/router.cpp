@@ -528,7 +528,6 @@ RouteResult Router::route(std::string_view method, std::string_view path) const
                 processException(ctx, std::move(e), normalizedPath);
             });
         } catch (...) {
-            const auto [found, node, bestNodeDepth] = m_root->findNode(normalizedPath);
             processException(ctx, std::current_exception(), normalizedPath);
             return nhope::makeReadyFuture();
         }

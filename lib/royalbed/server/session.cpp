@@ -16,6 +16,7 @@
 #include "nhope/io/pushback-reader.h"
 #include "nhope/io/string-reader.h"
 
+#include "royalbed/common/detail/uptime.h"
 #include "royalbed/server/detail/receive-request.h"
 #include "royalbed/server/detail/send-responce.h"
 #include "royalbed/server/detail/session.h"
@@ -63,13 +64,14 @@ public:
       : m_num(param.num)
       , m_ctx(param.ctx)
       , m_in(param.in)
-      , m_out(param.out)
+      , m_out(param.out)      
       , m_requestCtx{
           .num = param.num,
           .log = std::move(param.log),
           .router = param.ctx.router(),
           .aoCtx = nhope::AOContext(aoCtx),
         }
+        , m_upTime(m_requestCtx.log, "session time:")
     {
         m_requestCtx.aoCtx.startCancellableTask(
           [this] {
@@ -127,7 +129,7 @@ private:
 
     nhope::Future<void> processingRequest(Request&& req)
     {
-        m_requestCtx.log->info("request: \"{} {}\"", req.method, req.uri.path);
+        m_requestCtx.log->trace("request: \"{} {}\"", req.method, req.uri.path);
 
         auto routeResult = m_requestCtx.router.route(req.method, req.uri.path);
         m_handler = std::move(routeResult.handler);
@@ -191,14 +193,14 @@ private:
 
     nhope::Future<void> sendResponce()
     {
-        m_requestCtx.log->info("responce: {}", m_requestCtx.responce.status);
+        m_requestCtx.log->trace("responce: {}", m_requestCtx.responce.status);
 
         // TODO: Support keep-alive
         m_requestCtx.responce.headers["Connection"] = "close";
         m_requestCtx.responce.headers["Date"] = gmtDateTime();
 
         return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then(aoCtx(), [this](auto size) {
-            m_requestCtx.log->debug("responce has been sent: {} bytes", size);
+            m_requestCtx.log->trace("responce has been sent: {} bytes", size);
         });
     }
 
@@ -233,6 +235,7 @@ private:
     std::list<Middleware> m_middlewares;
 
     RequestContext m_requestCtx;
+    royalbed::common::detail::UpTimeLogger m_upTime;
 };
 
 }   // namespace
