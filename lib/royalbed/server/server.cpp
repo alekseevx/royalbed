@@ -100,6 +100,7 @@ private:
 
             detail::openConnection(m_aoCtx, {
                                               .num = connectionNum,
+                                              .keepAlive = m_keepAlive,
                                               .ctx = *this,
                                               .log = m_log->clone(fmt::format("{}/C{}", m_log->name(), connectionNum)),
                                               .sock = std::move(connection),
@@ -112,6 +113,9 @@ private:
     std::shared_ptr<spdlog::logger> m_log;
     nhope::TcpServerPtr m_tcpServer;
     Router m_router;
+
+    // TODO add max connections limit
+    KeepAliveParams m_keepAlive{};
 
     std::uint32_t m_activeConnectionCount = 0;
     std::uint32_t m_activeSessionCount = 0;

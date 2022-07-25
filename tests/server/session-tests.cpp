@@ -53,6 +53,11 @@ public:
         m_event.set();
     }
 
+    bool sessionNeedClose() noexcept override
+    {
+        return false;
+    }
+
     bool wait(std::chrono::nanoseconds timeout)
     {
         return m_event.waitFor(timeout);
@@ -87,7 +92,7 @@ TEST(Session, OnlyHandler)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
+    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\nConnection: close\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
@@ -195,7 +200,7 @@ TEST(Session, ExceptionInHandler)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
+    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\nConnection: close\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{

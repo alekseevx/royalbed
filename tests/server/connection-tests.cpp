@@ -76,6 +76,7 @@ TEST(Connection, FullLiveCycle)   // NOLINT
     aoCtx.exec([&] {
         openConnection(aoCtx, ConnectionParams{
                                 .num = etalonConnectionNum,
+                                .keepAlive = {},
                                 .ctx = ctx,
                                 .log = nullLogger(),
                                 .sock = NullSock::create(aoCtx),
@@ -93,6 +94,7 @@ TEST(Connection, Cancel)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     openConnection(aoCtx, ConnectionParams{
                             .num = etalonConnectionNum,
+                            .keepAlive = {},
                             .ctx = ctx,
                             .log = nullLogger(),
                             .sock = SlowSock::create(aoCtx),

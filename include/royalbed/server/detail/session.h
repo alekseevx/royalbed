@@ -23,6 +23,8 @@ public:
 
     virtual void sessionReceivedRequest(std::uint32_t sessionNum) noexcept = 0;
     virtual void sessionFinished(std::uint32_t sessionNum, bool keepALive) noexcept = 0;
+
+    virtual bool sessionNeedClose() noexcept = 0;
 };
 
 struct SessionParams
