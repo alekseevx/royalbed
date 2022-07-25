@@ -1,6 +1,7 @@
 #include <chrono>
 
 #include "gtest/gtest.h"
+#include <string>
 #include <thread>
 #include "spdlog/spdlog.h"
 
@@ -46,11 +47,13 @@ public:
     void sessionFinished(std::uint32_t sessionNum) override
     {
         EXPECT_EQ(etalonSessionNum, sessionNum);
+        m_finishedSessionSum += sessionNum;
     }
 
     void connectionClosed(std::uint32_t connectionNum) override
     {
         EXPECT_EQ(etalonConnectionNum, connectionNum);
+        m_connectionNumFinished += connectionNum;
         m_event.set();
     }
 
@@ -59,9 +62,20 @@ public:
         return m_event.waitFor(timeout);
     }
 
+    [[nodiscard]] std::uint64_t finishedSessionSum() const noexcept
+    {
+        return m_finishedSessionSum;
+    }
+    [[nodiscard]] std::uint64_t finishedConnectionSum() const noexcept
+    {
+        return m_connectionNumFinished;
+    }
+
 private:
     Router m_router;
     nhope::Event m_event;
+    std::uint64_t m_finishedSessionSum{};
+    std::uint64_t m_connectionNumFinished{};
 };
 
 }   // namespace
@@ -104,4 +118,56 @@ TEST(Connection, Cancel)   // NOLINT
     aoCtx.close();
 
     EXPECT_TRUE(ctx.wait(1s));
+}
+
+TEST(Connection, KeepAlive)   // NOLINT
+{
+    TestConnectionCtx ctx{Router()};
+
+    auto executor = nhope::ThreadExecutor();
+    auto aoCtx = nhope::AOContext(executor);
+
+    std::string reqStr = "GET /path HTTP/1.1\r\nHost: 127.0.0.1:2\r\n\r\n";
+    reqStr += reqStr;
+
+    openConnection(aoCtx, ConnectionParams{
+                            .num = etalonConnectionNum,
+                            .keepAlive =
+                              {
+                                .timeout = 1s,
+                                .requestsCount = 2,
+                              },
+                            .ctx = ctx,
+                            .log = nullLogger(),
+                            .sock = EchoSock::create(aoCtx, reqStr),
+                          });
+
+    EXPECT_TRUE(ctx.wait(2s));
+    EXPECT_EQ(ctx.finishedSessionSum(), etalonSessionNum * 2);
+    EXPECT_EQ(ctx.finishedConnectionSum(), etalonConnectionNum);
+}
+
+TEST(Connection, KeepAliveTimeout)   // NOLINT
+{
+    TestConnectionCtx ctx{Router()};
+
+    auto executor = nhope::ThreadExecutor();
+    auto aoCtx = nhope::AOContext(executor);
+
+    std::string reqStr = "GET /path HTTP/1.1\r\nHost: 127.0.0.1:2\r\n\r\n";
+    reqStr += reqStr;
+
+    openConnection(aoCtx, ConnectionParams{
+                            .num = etalonConnectionNum,
+                            .keepAlive =
+                              {
+                                .timeout = 1s,
+                                .requestsCount = etalonSessionNum,
+                              },
+                            .ctx = ctx,
+                            .log = nullLogger(),
+                            .sock = EchoSock::create(aoCtx, reqStr),
+                          });
+
+    EXPECT_TRUE(ctx.wait(2s));
 }

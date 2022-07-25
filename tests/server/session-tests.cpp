@@ -15,8 +15,7 @@
 #include "nhope/async/future.h"
 #include "nhope/async/thread-executor.h"
 #include "nhope/io/io-device.h"
-#include "nhope/io/pushback-reader.h"
-#include "nhope/io/string-reader.h"
+
 #include "nhope/io/string-writter.h"
 
 #include "royalbed/server/detail/session.h"
@@ -67,12 +66,6 @@ private:
     Router m_router;
     nhope::Event m_event;
 };
-
-nhope::PushbackReaderPtr inputStream(nhope::AOContext& aoCtx, std::string request)
-{
-    using namespace nhope;
-    return PushbackReader::create(aoCtx, StringReader::create(aoCtx, std::move(request)));
-}
 
 }   // namespace
 

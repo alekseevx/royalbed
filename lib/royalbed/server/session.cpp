@@ -209,14 +209,14 @@ private:
     nhope::Future<bool> sendResponse()
     {
         m_requestCtx.log->trace("response: {}", m_requestCtx.response.status);
-        auto keepAlive = needClose();
-        if (keepAlive) {
+        auto needAddClose = needClose();
+        if (needAddClose) {
             m_requestCtx.response.headers[ConnectionHeader] = ConnectionHeaderCloseValue;
         }
         m_requestCtx.response.headers["Date"] = gmtDateTime();
 
         return detail::sendResponse(aoCtx(), std::move(m_requestCtx.response), m_out)
-          .then(aoCtx(), [this, keepAlive](auto size) {
+          .then(aoCtx(), [this, keepAlive = !needAddClose](auto size) {
               m_requestCtx.log->trace("response has been sent: {} bytes", size);
               return keepAlive;
           });

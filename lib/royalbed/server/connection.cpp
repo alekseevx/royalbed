@@ -33,7 +33,7 @@ public:
       , m_log(std::move(params.log))
       , m_ctx(params.ctx)
       , m_sock(std::move(params.sock))
-      , m_leftRequests(params.keepAlive.requestsCount)
+      , m_leftRequests(params.keepAlive.requestsCount > 0 ? params.keepAlive.requestsCount : 1)
       , m_upTime(m_log, "connection time:")
       , m_aoCtx(parent)
     {
@@ -119,6 +119,7 @@ private:
 
     void startSession()
     {
+        assert(m_leftRequests > 0);   // NOLINT
         --m_leftRequests;
         auto [sessionNum, sessionLog] = m_ctx.startSession(m_num);
 
