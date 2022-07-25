@@ -77,7 +77,7 @@ TEST(Session, OnlyHandler)   // NOLINT
     router.get("/path", [](RequestContext& ctx) {
         EXPECT_EQ(ctx.request.method, "GET");
         EXPECT_EQ(ctx.request.uri.toString(), "/path?k=v#fragment");
-        ctx.responce = {
+        ctx.response = {
           .status = HttpStatus::Ok,
         };
         return nhope::makeReadyFuture();
@@ -99,9 +99,9 @@ TEST(Session, OnlyHandler)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 200 OK\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 200 OK\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
 }
 
 TEST(Session, OnlyMiddlewares)   // NOLINT
@@ -207,10 +207,10 @@ TEST(Session, ExceptionInHandler)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Date:") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Date:") != std::string::npos);
 }
 
 TEST(Session, ExceptionInMiddleware)   // NOLINT
@@ -220,7 +220,7 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
         throw std::runtime_error("XXX");
     });
     router.get("/path", [](RequestContext& ctx) {
-        ctx.responce = {
+        ctx.response = {
           .status = HttpStatus::Ok,
         };
         return nhope::makeReadyFuture();
@@ -242,8 +242,8 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 500 Internal Server Error") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 500 Internal Server Error") != std::string::npos);
 }
 
 TEST(Session, Close)   // NOLINT

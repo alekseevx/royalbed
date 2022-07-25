@@ -28,9 +28,9 @@ void redoc(Router& router, const cmrc::embedded_filesystem& fs, std::string_view
 {
     router.get("/redoc/doc-api"sv, [mimeType = common::mimeTypeForFileName(openApiFilePath),
                                     file = fs.open(std::string(openApiFilePath))](RequestContext& ctx) {
-        ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
-        ctx.responce.headers["Content-Length"] = std::to_string(file.size());
-        ctx.responce.headers["Content-Type"] = mimeType;
+        ctx.response.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
+        ctx.response.headers["Content-Length"] = std::to_string(file.size());
+        ctx.response.headers["Content-Type"] = mimeType;
         return nhope::makeReadyFuture();
     });
 

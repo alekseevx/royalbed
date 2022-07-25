@@ -140,13 +140,13 @@ TEST(StaticFiles, getFiles)   // NOLINT
         };
         router.route("GET", rec.path).handler(reqCtx).get();
 
-        EXPECT_EQ(reqCtx.responce.status, HttpStatus::Ok);
+        EXPECT_EQ(reqCtx.response.status, HttpStatus::Ok);
 
-        EXPECT_EQ(reqCtx.responce.headers["Content-Type"], rec.etalonContentType);
-        EXPECT_EQ(reqCtx.responce.headers["Content-Length"], std::to_string(rec.etalonData.size()));
-        EXPECT_EQ(reqCtx.responce.headers["Content-Encoding"], rec.contentEncoding);
+        EXPECT_EQ(reqCtx.response.headers["Content-Type"], rec.etalonContentType);
+        EXPECT_EQ(reqCtx.response.headers["Content-Length"], std::to_string(rec.etalonData.size()));
+        EXPECT_EQ(reqCtx.response.headers["Content-Encoding"], rec.contentEncoding);
 
-        const auto body = nhope::readAll(*reqCtx.responce.body).get();
+        const auto body = nhope::readAll(*reqCtx.response.body).get();
         EXPECT_TRUE(eq(rec.etalonData, body));
     }
 }
@@ -167,7 +167,7 @@ TEST(Swagger, Api)   // NOLINT
 
     {
         router.route("GET", "/swagger/doc-api").handler(reqCtx).get();
-        const auto body = nhope::readAll(*reqCtx.responce.body).get();
+        const auto body = nhope::readAll(*reqCtx.response.body).get();
         EXPECT_TRUE(eq(openApiFileData, body));
     }
 
@@ -175,8 +175,8 @@ TEST(Swagger, Api)   // NOLINT
         router.route("GET", "swagger/index.html").handler(reqCtx).get();
         auto swaggerFs = cmrc::royalbed::swagger::get_filesystem();
         const auto htmlBody = swaggerFs.open("swagger/index.html");
-        const auto body = nhope::readAll(*reqCtx.responce.body).get();
+        const auto body = nhope::readAll(*reqCtx.response.body).get();
         EXPECT_TRUE(eq(std::span{htmlBody.begin(), htmlBody.end()}, body));
-        EXPECT_EQ(reqCtx.responce.headers["Content-Type"], "text/html; charset=utf-8");
+        EXPECT_EQ(reqCtx.response.headers["Content-Type"], "text/html; charset=utf-8");
     }
 }

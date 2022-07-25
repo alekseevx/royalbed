@@ -9,7 +9,7 @@
 
 namespace royalbed::common {
 
-struct Responce final
+struct Response final
 {
     int status = HttpStatus::Ok;
     std::string statusMessage;

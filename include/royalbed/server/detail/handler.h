@@ -230,7 +230,7 @@ LowLevelHandler makeLowLevelHandler(Handler&& handler, int defaultStatus)
     using FnProps = nhope::FunctionProps<decltype(std::function(std::declval<Handler>()))>;
 
     return [handler = std::move(handler), defaultStatus](RequestContext& ctx) {
-        ctx.responce.status = defaultStatus;
+        ctx.response.status = defaultStatus;
         constexpr int bodyIndex = nhope::findArgument<FnProps, common::IsBodyType>();
         constexpr bool paramHasBody = bodyIndex != -1;
         if constexpr (paramHasBody) {

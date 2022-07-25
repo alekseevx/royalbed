@@ -16,10 +16,10 @@
 #include "3rdparty/llhttp/llhttp.h"
 #include "royalbed/common/detail/body-reader.h"
 
-#include "royalbed/client/responce.h"
+#include "royalbed/client/response.h"
 #include "royalbed/client/http-error.h"
 #include "royalbed/client/http-status.h"
-#include "royalbed/client/detail/receive-responce.h"
+#include "royalbed/client/detail/receive-response.h"
 
 namespace royalbed::client::detail {
 namespace {
@@ -30,10 +30,10 @@ using common::detail::BodyReaderPtr;
 constexpr std::size_t receiveBufSize = 4096;
 
 // FIXME: Duplicates RequestReceiver
-class ResponceReceiver final : public std::enable_shared_from_this<ResponceReceiver>
+class ResponseReceiver final : public std::enable_shared_from_this<ResponseReceiver>
 {
 public:
-    ResponceReceiver(nhope::AOContext& aoCtx, nhope::PushbackReader& device)
+    ResponseReceiver(nhope::AOContext& aoCtx, nhope::PushbackReader& device)
       : m_aoCtx(aoCtx)
       , m_device(device)
       , m_httpParser(std::make_unique<llhttp_t>())
@@ -42,14 +42,14 @@ public:
         m_httpParser->data = this;
     }
 
-    ~ResponceReceiver()
+    ~ResponseReceiver()
     {
         if (!m_promise.satisfied()) {
             m_promise.setException(std::make_exception_ptr(nhope::AsyncOperationWasCancelled()));
         }
     }
 
-    nhope::Future<Responce> start()
+    nhope::Future<Response> start()
     {
         this->readNextPortion();
         return m_promise.future();
@@ -89,9 +89,9 @@ private:
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         const auto* beginBody = reinterpret_cast<const std::uint8_t*>(llhttp_get_error_pos(m_httpParser.get()));
         m_device.unread({std::to_address(beginBody), std::to_address(data.end())});
-        m_responce.body = BodyReader::create(m_aoCtx, m_device, std::move(m_httpParser));
+        m_response.body = BodyReader::create(m_aoCtx, m_device, std::move(m_httpParser));
 
-        m_promise.setValue(std::move(m_responce));
+        m_promise.setValue(std::move(m_response));
 
         return false;
     }
@@ -123,40 +123,40 @@ private:
 
     static int onStatus(llhttp_t* httpParser, const char* at, std::size_t size)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
         self->m_status.append(at, size);
         return HPE_OK;
     }
 
     static int onStatusComplete(llhttp_t* httpParser)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
-        self->m_responce.status = httpParser->status_code;
-        self->m_responce.statusMessage = std::move(self->m_status);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
+        self->m_response.status = httpParser->status_code;
+        self->m_response.statusMessage = std::move(self->m_status);
         return HPE_OK;
     }
 
     static int onHeaderName(llhttp_t* httpParser, const char* at, std::size_t size)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
         self->m_curHeaderName.append(at, size);
         return HPE_OK;
     }
 
     static int onHeaderValue(llhttp_t* httpParser, const char* at, std::size_t size)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
         self->m_curHeaderValue.append(at, size);
         return HPE_OK;
     }
 
     static int onHeaderComplete(llhttp_t* httpParser)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
 
         assert(self->m_curHeaderName.size() > 0);   // NOLINT
 
-        self->m_responce.headers[self->m_curHeaderName] = self->m_curHeaderValue;
+        self->m_response.headers[self->m_curHeaderName] = self->m_curHeaderValue;
         self->m_curHeaderName.clear();
         self->m_curHeaderValue.clear();
 
@@ -165,7 +165,7 @@ private:
 
     static int onHeadersComplete(llhttp_t* httpParser)
     {
-        auto* self = static_cast<ResponceReceiver*>(httpParser->data);
+        auto* self = static_cast<ResponseReceiver*>(httpParser->data);
         self->m_headersComplete = true;
         return HPE_PAUSED;
     }
@@ -183,7 +183,7 @@ private:
     nhope::AOContextRef m_aoCtx;
     nhope::PushbackReader& m_device;
 
-    nhope::Promise<Responce> m_promise;
+    nhope::Promise<Response> m_promise;
 
     std::unique_ptr<llhttp_t> m_httpParser;
     std::string m_status;
@@ -193,14 +193,14 @@ private:
 
     std::array<std::uint8_t, receiveBufSize> m_receiveBuf{};
 
-    Responce m_responce;
+    Response m_response;
 };
 
 }   // namespace
 
-nhope::Future<Responce> receiveResponce(nhope::AOContext& aoCtx, nhope::PushbackReader& device)
+nhope::Future<Response> receiveResponse(nhope::AOContext& aoCtx, nhope::PushbackReader& device)
 {
-    auto receiver = std::make_shared<ResponceReceiver>(aoCtx, device);
+    auto receiver = std::make_shared<ResponseReceiver>(aoCtx, device);
     return receiver->start();
 }
 

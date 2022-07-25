@@ -66,8 +66,8 @@ private:
     SessionAttr startSession(std::uint32_t /*connectionNum*/) override
     {
         assert(m_aoCtx.workInThisThread());   // NOLINT
-        const auto sessionNum = ++m_seesionCounter;
-        ++m_activeSeesionCount;
+        const auto sessionNum = ++m_sessionCounter;
+        ++m_activeSessionCount;
 
         return {
           .num = sessionNum,
@@ -78,7 +78,7 @@ private:
     void sessionFinished(std::uint32_t /*sessionNum*/) override
     {
         assert(m_aoCtx.workInThisThread() || !m_aoCtx.isOpen());   // NOLINT
-        --m_activeSeesionCount;
+        --m_activeSessionCount;
     }
 
     void connectionClosed(std::uint32_t connectionNum) override
@@ -114,10 +114,10 @@ private:
     Router m_router;
 
     std::uint32_t m_activeConnectionCount = 0;
-    std::uint32_t m_activeSeesionCount = 0;
+    std::uint32_t m_activeSessionCount = 0;
 
     std::uint32_t m_connectionCounter = 0;
-    std::uint32_t m_seesionCounter = 0;
+    std::uint32_t m_sessionCounter = 0;
 
     royalbed::common::detail::UpTimeLogger m_upTime;
 

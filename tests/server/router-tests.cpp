@@ -35,7 +35,7 @@ using namespace royalbed::server;
 LowLevelHandler makeHandler(std::string_view status)
 {
     return [status](RequestContext& ctx) {
-        ctx.responce.statusMessage = status;
+        ctx.response.statusMessage = status;
         return nhope::makeReadyFuture();
     };
 }
@@ -63,7 +63,7 @@ public:
     {
         auto ctx = context();
         m_router.route(method, path).handler(ctx).get();
-        EXPECT_EQ(ctx.responce.statusMessage, awaitedStatus);
+        EXPECT_EQ(ctx.response.statusMessage, awaitedStatus);
     }
 };
 
@@ -385,27 +385,27 @@ TEST(Router, HightLevelHandler)   // NOLINT
     };
     {
         router.route("GET", "/some/40").handler(ctx).get();
-        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto body = nhope::readAll(*ctx.response.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json.get<int>(), 42);
     }
     {
         router.route("GET", "/some").handler(ctx).get();
-        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto body = nhope::readAll(*ctx.response.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json.get<std::string>(), "42");
     }
 
     {
         router.route("DELETE", "/some").handler(ctx).get();
-        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto body = nhope::readAll(*ctx.response.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json.get<int>(), 1);
     }
 
     {
         router.route("GET", "/some_direct_json").handler(ctx).get();
-        const auto body = nhope::readAll(*ctx.responce.body).get();
+        const auto body = nhope::readAll(*ctx.response.body).get();
         const auto json = nlohmann::json::parse(body.begin(), body.end());
         EXPECT_EQ(json["field"].get<std::string>(), "42");
     }
@@ -434,7 +434,7 @@ TEST(Router, BodyHandler)   // NOLINT
       .aoCtx = nhope::AOContext(th),
     };
     router.route("GET", "/some").handler(ctx).get();
-    const auto body = nhope::readAll(*ctx.responce.body).get();
+    const auto body = nhope::readAll(*ctx.response.body).get();
     const auto json = nlohmann::json::parse(body.begin(), body.end());
     EXPECT_EQ(json.get<int>(), 4);
 }
@@ -460,7 +460,7 @@ TEST(Router, ExceptionHandler)   // NOLINT
     });
 
     router.setExceptionHandler([](RequestContext& ctx, const std::exception_ptr&) {
-        ctx.responce.statusMessage = "FAIL";
+        ctx.response.statusMessage = "FAIL";
     });
 
     HandlerTester test(router);

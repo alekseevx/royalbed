@@ -6,10 +6,10 @@
 #include "nhope/async/future.h"
 #include "nhope/io/io-device.h"
 
-#include "royalbed/server/responce.h"
+#include "royalbed/server/response.h"
 
 namespace royalbed::server::detail {
 
-nhope::Future<std::size_t> sendResponce(nhope::AOContext& aoCtx, Responce&& responce, nhope::Writter& device);
+nhope::Future<std::size_t> sendResponse(nhope::AOContext& aoCtx, Response&& response, nhope::Writter& device);
 
 }   // namespace royalbed::server::detail

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.11)
 include(cmake/CMakeRC.cmake)
 include(cmake/enable_warnings.cmake)
 include(cmake/sanitizer.cmake)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 include(cmake/bastard_setup.cmake)
 bastard_setup()

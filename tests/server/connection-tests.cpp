@@ -1,6 +1,7 @@
 #include <chrono>
 
 #include "gtest/gtest.h"
+#include <thread>
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/event.h"
@@ -80,7 +81,7 @@ TEST(Connection, FullLiveCycle)   // NOLINT
                                 .sock = NullSock::create(aoCtx),
                               });
     });
-
+    std::this_thread::sleep_for(std::chrono::seconds(4));
     EXPECT_TRUE(ctx.wait(1s));
 }
 

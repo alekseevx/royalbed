@@ -11,7 +11,7 @@
 #include "nhope/async/ao-context.h"
 
 #include "royalbed/server/request.h"
-#include "royalbed/server/responce.h"
+#include "royalbed/server/response.h"
 
 namespace royalbed::server {
 
@@ -29,7 +29,7 @@ struct RequestContext final
     Request request;
     RawPathParams rawPathParams;
 
-    Responce responce;
+    Response response;
 
     nhope::AOContext aoCtx;
 };
