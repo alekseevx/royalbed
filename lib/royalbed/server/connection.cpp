@@ -58,24 +58,25 @@ private:
     void processTimeout()
     {
         m_leftRequests = 0;
-        if (!m_haveActiveSession) {
-            constexpr auto incomingRequestTimeout = std::chrono::seconds(2);
-            // TODO use nhope::race (not implemented yet)
-            nhope::setTimeout(m_aoCtx, incomingRequestTimeout, [this](auto) {
-                m_aoCtx.close();
-            });
-            detail::sendResponse(m_aoCtx,
-                                 Response{
-                                   .status = HttpStatus::RequestTimeout,
-                                   .statusMessage = std::string(HttpStatus::message(HttpStatus::RequestTimeout)),
-                                   .headers = {{"Connection", "close"}},
-                                   .body = nullptr,
-                                 },
-                                 *m_sock)
-              .then(m_aoCtx, [this](auto) {
-                  m_aoCtx.close();
-              });
-        };
+        if (m_haveActiveSession) {
+            return;
+        }
+        constexpr auto incomingRequestTimeout = std::chrono::seconds(2);
+        // TODO use nhope::race (not implemented yet)
+        nhope::setTimeout(m_aoCtx, incomingRequestTimeout, [this](auto) {
+            m_aoCtx.close();
+        });
+        detail::sendResponse(m_aoCtx,
+                             Response{
+                               .status = HttpStatus::RequestTimeout,
+                               .statusMessage = std::string(HttpStatus::message(HttpStatus::RequestTimeout)),
+                               .headers = {{"Connection", "close"}},
+                               .body = nullptr,
+                             },
+                             *m_sock)
+          .then(m_aoCtx, [this](auto) {
+              m_aoCtx.close();
+          });
     }
 
     void aoContextClose() noexcept override
