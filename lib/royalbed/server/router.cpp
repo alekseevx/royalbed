@@ -142,7 +142,7 @@ const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, st
           .body = nullptr,
         };
     } catch (const std::exception& e) {
-        ctx.makePlainTextResponse(HttpStatus::InternalServerError, e.what());
+        ctx.response = makePlainTextResponse(ctx.aoCtx, HttpStatus::InternalServerError, e.what());
     }
     return nhope::makeReadyFuture();
 }};

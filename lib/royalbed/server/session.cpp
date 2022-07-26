@@ -173,9 +173,10 @@ private:
         try {
             std::rethrow_exception(std::move(ex));
         } catch (const HttpError& e) {
-            m_requestCtx.makePlainTextResponse(e.httpStatus(), e.what());
+            m_requestCtx.response = common::makePlainTextResponse(aoCtx(), e.httpStatus(), e.what());
+
         } catch (const std::exception& e) {
-            m_requestCtx.makePlainTextResponse(HttpStatus::InternalServerError, e.what());
+            m_requestCtx.response = common::makePlainTextResponse(aoCtx(), HttpStatus::InternalServerError, e.what());
         }
     }
 

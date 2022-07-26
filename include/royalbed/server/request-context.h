@@ -32,8 +32,6 @@ struct RequestContext final
     Response response;
 
     nhope::AOContext aoCtx;
-
-    void makePlainTextResponse(int status, std::string_view msg);
 };
 
 }   // namespace royalbed::server
