@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <exception>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -14,7 +15,6 @@
 #include "nhope/async/future.h"
 #include "nhope/io/io-device.h"
 #include "nhope/io/pushback-reader.h"
-#include "nhope/io/string-reader.h"
 
 #include "royalbed/common/detail/uptime.h"
 #include "royalbed/server/detail/receive-request.h"
@@ -173,25 +173,9 @@ private:
         try {
             std::rethrow_exception(std::move(ex));
         } catch (const HttpError& e) {
-            m_requestCtx.response = {
-              .status = e.httpStatus(),
-              .statusMessage = e.what(),
-              .headers = {},
-              .body = nullptr,
-            };
+            m_requestCtx.makePlainTextResponse(e.httpStatus(), e.what());
         } catch (const std::exception& e) {
-            auto statusMessage = std::string{HttpStatus::message(HttpStatus::InternalServerError)};
-            auto body = std::string(e.what());
-            m_requestCtx.response = {
-              .status = HttpStatus::InternalServerError,
-              .statusMessage = std::move(statusMessage),
-              .headers =
-                {
-                  {"Content-Type", "text/plain; charset=utf-8"},
-                  {"Content-Length", std::to_string(body.size())},
-                },
-              .body = nhope::StringReader::create(aoCtx(), std::move(body)),
-            };
+            m_requestCtx.makePlainTextResponse(HttpStatus::InternalServerError, e.what());
         }
     }
 

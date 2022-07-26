@@ -52,6 +52,7 @@ TEST(Server, Echo)   // NOLINT
                                       .uri = {.path = "/echo"},
                                       .headers =
                                         {
+                                          {"Connection", "close"},
                                           {"Content-Length", std::to_string(content.size())},
                                         },
                                       .body = StringReader::create(aoCtx, content),
