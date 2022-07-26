@@ -1,7 +1,14 @@
 #include <gtest/gtest.h>
+#include <string>
+#include "nhope/async/ao-context.h"
+#include "nhope/async/executor.h"
+#include "nhope/async/thread-executor.h"
+#include "nhope/io/io-device.h"
 #include "royalbed/common/http-status.h"
+#include "royalbed/common/response.h"
 
 using namespace royalbed::common;
+using namespace std::literals;
 
 TEST(HttpStatus, message)   // NOLINT
 {
@@ -72,4 +79,20 @@ TEST(HttpStatus, message)   // NOLINT
     }
 
     EXPECT_TRUE(HttpStatus::message(unknownStatus).empty());
+}
+
+TEST(HttpStatus, Response)   // NOLINT
+{
+    nhope::ThreadExecutor e;
+    nhope::AOContext ctx(e);
+    auto errMsg = "something wrong"sv;
+    auto resp = makePlainTextResponse(ctx, HttpStatus::BadRequest, errMsg);
+    auto raw = nhope::readAll(*resp.body).get();
+    std::string body(raw.begin(), raw.end());
+
+    EXPECT_EQ(resp.status, HttpStatus::BadRequest);
+    EXPECT_EQ(resp.statusMessage, HttpStatus::message(HttpStatus::BadRequest));
+    EXPECT_EQ(errMsg, body.data());
+    EXPECT_EQ(resp.headers["Content-Type"], "text/plain; charset=utf-8");
+    EXPECT_EQ(resp.headers["Content-Length"], std::to_string(errMsg.size()));
 }
