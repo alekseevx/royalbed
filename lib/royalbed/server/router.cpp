@@ -22,12 +22,12 @@
 #include "nhope/io/string-reader.h"
 
 #include "royalbed/common/detail/string-utils.h"
-#include "royalbed/common/responce.h"
+#include "royalbed/common/response.h"
 #include "royalbed/server/http-status.h"
 #include "royalbed/server/low-level-handler.h"
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
-#include "royalbed/server/responce.h"
+#include "royalbed/server/response.h"
 #include "royalbed/server/error.h"
 #include "royalbed/server/router.h"
 
@@ -113,8 +113,8 @@ std::string normalizePath(std::string_view path)
 const auto defaultNotFoundHandler = LowLevelHandler{[](RequestContext& ctx) {
     ctx.log->error("Resource route \"{}\" not found", ctx.request.uri.path);
 
-    ctx.responce.status = HttpStatus::NotFound;
-    ctx.responce.statusMessage = HttpStatus::message(HttpStatus::NotFound);
+    ctx.response.status = HttpStatus::NotFound;
+    ctx.response.statusMessage = HttpStatus::message(HttpStatus::NotFound);
 
     return nhope::makeReadyFuture();
 }};
@@ -124,9 +124,9 @@ const auto defaultMethodNotAllowedHandler = LowLevelHandler{[](RequestContext& c
 
     const auto allowMethods = ctx.router.allowMethods(ctx.request.uri.path);
 
-    ctx.responce.status = HttpStatus::MethodNotAllowed;
-    ctx.responce.statusMessage = HttpStatus::message(HttpStatus::MethodNotAllowed);
-    ctx.responce.headers["Allow"] = fmt::format("{}", fmt::join(allowMethods, ", "));
+    ctx.response.status = HttpStatus::MethodNotAllowed;
+    ctx.response.statusMessage = HttpStatus::message(HttpStatus::MethodNotAllowed);
+    ctx.response.headers["Allow"] = fmt::format("{}", fmt::join(allowMethods, ", "));
 
     return nhope::makeReadyFuture();
 }};
@@ -135,7 +135,7 @@ const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, st
     try {
         std::rethrow_exception(std::move(ex));
     } catch (const HttpError& e) {
-        ctx.responce = {
+        ctx.response = {
           .status = e.httpStatus(),
           .statusMessage = e.what(),
           .headers = {},
@@ -143,7 +143,7 @@ const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, st
         };
     } catch (const std::exception& e) {
         auto body = std::string(e.what());
-        ctx.responce = {
+        ctx.response = {
           .status = HttpStatus::InternalServerError,
           .statusMessage = std::string(HttpStatus::message(HttpStatus::InternalServerError)),
           .headers =

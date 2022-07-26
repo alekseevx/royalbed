@@ -66,8 +66,8 @@ private:
     SessionAttr startSession(std::uint32_t /*connectionNum*/) override
     {
         assert(m_aoCtx.workInThisThread());   // NOLINT
-        const auto sessionNum = ++m_seesionCounter;
-        ++m_activeSeesionCount;
+        const auto sessionNum = ++m_sessionCounter;
+        ++m_activeSessionCount;
 
         return {
           .num = sessionNum,
@@ -78,7 +78,7 @@ private:
     void sessionFinished(std::uint32_t /*sessionNum*/) override
     {
         assert(m_aoCtx.workInThisThread() || !m_aoCtx.isOpen());   // NOLINT
-        --m_activeSeesionCount;
+        --m_activeSessionCount;
     }
 
     void connectionClosed(std::uint32_t connectionNum) override
@@ -100,6 +100,7 @@ private:
 
             detail::openConnection(m_aoCtx, {
                                               .num = connectionNum,
+                                              .keepAlive = m_keepAlive,
                                               .ctx = *this,
                                               .log = m_log->clone(fmt::format("{}/C{}", m_log->name(), connectionNum)),
                                               .sock = std::move(connection),
@@ -113,11 +114,14 @@ private:
     nhope::TcpServerPtr m_tcpServer;
     Router m_router;
 
+    // TODO add max connections limit
+    KeepAliveParams m_keepAlive{};
+
     std::uint32_t m_activeConnectionCount = 0;
-    std::uint32_t m_activeSeesionCount = 0;
+    std::uint32_t m_activeSessionCount = 0;
 
     std::uint32_t m_connectionCounter = 0;
-    std::uint32_t m_seesionCounter = 0;
+    std::uint32_t m_sessionCounter = 0;
 
     royalbed::common::detail::UpTimeLogger m_upTime;
 

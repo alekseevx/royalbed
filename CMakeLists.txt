@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.11)
 include(cmake/CMakeRC.cmake)
 include(cmake/enable_warnings.cmake)
 include(cmake/sanitizer.cmake)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 include(cmake/bastard_setup.cmake)
 bastard_setup()
@@ -48,7 +49,7 @@ if(ROYALBED_COVERAGE_ENABLED)
     setup_target_for_coverage_gcovr_html(
           NAME royal_bed_coverage
           EXECUTABLE ./tests --gtest_output=xml:junit-report.xml --gtest_print_file_info
-          EXCLUDE ".deps" "tests" "build"
+          EXCLUDE ".deps" "tests" "build" "examples" "lib/3rdparty/*"
           )
 endif()
 

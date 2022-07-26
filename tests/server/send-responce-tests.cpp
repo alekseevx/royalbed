@@ -6,9 +6,9 @@
 #include "nhope/io/string-reader.h"
 #include "nhope/io/string-writter.h"
 
-#include "royalbed/server/detail/send-responce.h"
+#include "royalbed/server/detail/send-response.h"
 #include "royalbed/server/http-status.h"
-#include "royalbed/server/responce.h"
+#include "royalbed/server/response.h"
 
 #include "helpers/iodevs.h"
 
@@ -20,14 +20,14 @@ using namespace royalbed::server::detail;
 
 }   // namespace
 
-TEST(SendResponce, SendResponceWithoutBody)   // NOLINT
+TEST(SendResponse, SendResponseWithoutBody)   // NOLINT
 {
     constexpr auto etalone = "HTTP/1.1 200 OK\r\nHeader1: Value1\r\n\r\n"sv;
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto resp = Responce{
+    auto resp = Response{
       .status = HttpStatus::Ok,
       .headers =
         {
@@ -37,20 +37,20 @@ TEST(SendResponce, SendResponceWithoutBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
+    const auto n = sendResponse(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
 }
 
-TEST(SendResponce, SendResponceWithCustomStatusMessage)   // NOLINT
+TEST(SendResponse, SendResponseWithCustomStatusMessage)   // NOLINT
 {
     constexpr auto etalone = "HTTP/1.1 200 COOL\r\nHeader1: Value1\r\n\r\n"sv;
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto resp = Responce{
+    auto resp = Response{
       .status = HttpStatus::Ok,
       .statusMessage = "COOL",
       .headers =
@@ -61,20 +61,20 @@ TEST(SendResponce, SendResponceWithCustomStatusMessage)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
+    const auto n = sendResponse(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
 }
 
-TEST(SendResponce, SendResponceWithBody)   // NOLINT
+TEST(SendResponse, SendResponseWithBody)   // NOLINT
 {
     constexpr auto etalone = "HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n1234567890"sv;
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto resp = Responce{
+    auto resp = Response{
       .headers =
         {
           {"Content-Length", "10"},
@@ -84,18 +84,18 @@ TEST(SendResponce, SendResponceWithBody)   // NOLINT
 
     auto dev = nhope::StringWritter::create(aoCtx);
 
-    const auto n = sendResponce(aoCtx, std::move(resp), *dev).get();
+    const auto n = sendResponse(aoCtx, std::move(resp), *dev).get();
 
     EXPECT_EQ(n, etalone.size());
     EXPECT_EQ(dev->takeContent(), etalone);
 }
 
-TEST(SendResponce, IOError)   // NOLINT
+TEST(SendResponse, IOError)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto resp = Responce{
+    auto resp = Response{
       .headers =
         {
           {"Header1", "Value1"},
@@ -104,17 +104,18 @@ TEST(SendResponce, IOError)   // NOLINT
 
     auto dev = BrokenSock::create(aoCtx);
 
-    auto future = sendResponce(aoCtx, std::move(resp), *dev);
+    auto future = sendResponse(aoCtx, std::move(resp), *dev);
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
 
-TEST(SendResponce, Cancel)   // NOLINT
+TEST(SendResponse, Cancel)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto resp = Responce{
+    auto resp = Response{
+      .statusMessage = "OK",
       .headers =
         {
           {"Header1", "Value1"},
@@ -123,7 +124,7 @@ TEST(SendResponce, Cancel)   // NOLINT
 
     auto dev = SlowSock::create(aoCtx);
 
-    auto future = sendResponce(aoCtx, std::move(resp), *dev);
+    auto future = sendResponse(aoCtx, std::move(resp), *dev);
 
     aoCtx.close();
 

@@ -18,7 +18,7 @@
 
 #include "royalbed/common/detail/uptime.h"
 #include "royalbed/server/detail/receive-request.h"
-#include "royalbed/server/detail/send-responce.h"
+#include "royalbed/server/detail/send-response.h"
 #include "royalbed/server/detail/session.h"
 #include "royalbed/server/error.h"
 #include "royalbed/server/http-status.h"
@@ -26,11 +26,15 @@
 #include "royalbed/server/middleware.h"
 #include "royalbed/server/request-context.h"
 #include "royalbed/server/request.h"
-#include "royalbed/server/responce.h"
+#include "royalbed/server/response.h"
 
 namespace royalbed::server::detail {
 
 namespace {
+using namespace std::literals;
+
+const auto ConnectionHeader = "Connection"s;
+const auto ConnectionHeaderCloseValue = "close"s;
 
 std::string gmtDateTime()
 {
@@ -111,11 +115,11 @@ private:
                 })
           .then(aoCtx(),
                 [this] {
-                    return this->sendResponce();
+                    return this->sendResponse();
                 })
           .then(aoCtx(),
-                [this] {
-                    this->finished(true);
+                [this](bool keepAlive) {
+                    this->finished(keepAlive);
                 })
           .fail(aoCtx(), [this](auto ex) {
               try {
@@ -169,7 +173,7 @@ private:
         try {
             std::rethrow_exception(std::move(ex));
         } catch (const HttpError& e) {
-            m_requestCtx.responce = {
+            m_requestCtx.response = {
               .status = e.httpStatus(),
               .statusMessage = e.what(),
               .headers = {},
@@ -178,7 +182,7 @@ private:
         } catch (const std::exception& e) {
             auto statusMessage = std::string{HttpStatus::message(HttpStatus::InternalServerError)};
             auto body = std::string(e.what());
-            m_requestCtx.responce = {
+            m_requestCtx.response = {
               .status = HttpStatus::InternalServerError,
               .statusMessage = std::move(statusMessage),
               .headers =
@@ -191,20 +195,34 @@ private:
         }
     }
 
-    nhope::Future<void> sendResponce()
+    bool needClose() const noexcept
     {
-        m_requestCtx.log->trace("responce: {}", m_requestCtx.responce.status);
-
-        // TODO: Support keep-alive
-        m_requestCtx.responce.headers["Connection"] = "close";
-        m_requestCtx.responce.headers["Date"] = gmtDateTime();
-
-        return detail::sendResponce(aoCtx(), std::move(m_requestCtx.responce), m_out).then(aoCtx(), [this](auto size) {
-            m_requestCtx.log->trace("responce has been sent: {} bytes", size);
-        });
+        if (m_ctx.sessionNeedClose()) {
+            return true;
+        }
+        if (auto it = m_requestCtx.request.headers.find(ConnectionHeader); it != m_requestCtx.request.headers.end()) {
+            return it->second == ConnectionHeaderCloseValue;
+        }
+        return false;
     }
 
-    void finished(bool success)
+    nhope::Future<bool> sendResponse()
+    {
+        m_requestCtx.log->trace("response: {}", m_requestCtx.response.status);
+        auto needAddClose = needClose();
+        if (needAddClose) {
+            m_requestCtx.response.headers[ConnectionHeader] = ConnectionHeaderCloseValue;
+        }
+        m_requestCtx.response.headers["Date"] = gmtDateTime();
+
+        return detail::sendResponse(aoCtx(), std::move(m_requestCtx.response), m_out)
+          .then(aoCtx(), [this, keepAlive = !needAddClose](auto size) {
+              m_requestCtx.log->trace("response has been sent: {} bytes", size);
+              return keepAlive;
+          });
+    }
+
+    void finished(bool keepAlive)
     {
         assert(!m_finished);   // NOLINT
 
@@ -215,7 +233,7 @@ private:
 
         m_requestCtx.aoCtx.close();
 
-        ctx.sessionFinished(num, success);
+        ctx.sessionFinished(num, keepAlive);
     }
 
     nhope::AOContext& aoCtx()

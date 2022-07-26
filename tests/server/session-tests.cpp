@@ -15,8 +15,7 @@
 #include "nhope/async/future.h"
 #include "nhope/async/thread-executor.h"
 #include "nhope/io/io-device.h"
-#include "nhope/io/pushback-reader.h"
-#include "nhope/io/string-reader.h"
+
 #include "nhope/io/string-writter.h"
 
 #include "royalbed/server/detail/session.h"
@@ -53,6 +52,11 @@ public:
         m_event.set();
     }
 
+    bool sessionNeedClose() noexcept override
+    {
+        return false;
+    }
+
     bool wait(std::chrono::nanoseconds timeout)
     {
         return m_event.waitFor(timeout);
@@ -63,12 +67,6 @@ private:
     nhope::Event m_event;
 };
 
-nhope::PushbackReaderPtr inputStream(nhope::AOContext& aoCtx, std::string request)
-{
-    using namespace nhope;
-    return PushbackReader::create(aoCtx, StringReader::create(aoCtx, std::move(request)));
-}
-
 }   // namespace
 
 TEST(Session, OnlyHandler)   // NOLINT
@@ -77,7 +75,7 @@ TEST(Session, OnlyHandler)   // NOLINT
     router.get("/path", [](RequestContext& ctx) {
         EXPECT_EQ(ctx.request.method, "GET");
         EXPECT_EQ(ctx.request.uri.toString(), "/path?k=v#fragment");
-        ctx.responce = {
+        ctx.response = {
           .status = HttpStatus::Ok,
         };
         return nhope::makeReadyFuture();
@@ -87,7 +85,7 @@ TEST(Session, OnlyHandler)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
+    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\nConnection: close\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
@@ -99,9 +97,9 @@ TEST(Session, OnlyHandler)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 200 OK\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 200 OK\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
 }
 
 TEST(Session, OnlyMiddlewares)   // NOLINT
@@ -195,7 +193,7 @@ TEST(Session, ExceptionInHandler)   // NOLINT
     auto aoCtx = nhope::AOContext(executor);
     TestSessionCtx testSessionCtx(std::move(router));
 
-    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\n\r\n");
+    auto in = inputStream(aoCtx, "GET /path?k=v#fragment HTTP/1.1\r\nConnection: close\r\n\r\n");
     auto out = nhope::StringWritter::create(aoCtx);
 
     startSession(aoCtx, SessionParams{
@@ -207,10 +205,10 @@ TEST(Session, ExceptionInHandler)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Connection: close\r\n") != std::string::npos);
-    EXPECT_TRUE(responce.find("Date:") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("Date:") != std::string::npos);
 }
 
 TEST(Session, ExceptionInMiddleware)   // NOLINT
@@ -220,7 +218,7 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
         throw std::runtime_error("XXX");
     });
     router.get("/path", [](RequestContext& ctx) {
-        ctx.responce = {
+        ctx.response = {
           .status = HttpStatus::Ok,
         };
         return nhope::makeReadyFuture();
@@ -242,8 +240,8 @@ TEST(Session, ExceptionInMiddleware)   // NOLINT
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
-    const auto responce = out->takeContent();
-    EXPECT_TRUE(responce.find("HTTP/1.1 500 Internal Server Error") != std::string::npos);
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 500 Internal Server Error") != std::string::npos);
 }
 
 TEST(Session, Close)   // NOLINT

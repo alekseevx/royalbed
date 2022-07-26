@@ -15,7 +15,7 @@
 #include "nhope/io/string-reader.h"
 #include "nhope/io/tcp.h"
 
-#include "royalbed/client/detail/receive-responce.h"
+#include "royalbed/client/detail/receive-response.h"
 #include "royalbed/client/request.h"
 #include "royalbed/client/detail/send-request.h"
 
@@ -60,16 +60,16 @@ TEST(Server, Echo)   // NOLINT
           .get();
 
         auto pushbackReader = PushbackReader::create(aoCtx, *sock);
-        auto resp = client::detail::receiveResponce(aoCtx, *pushbackReader).get();
+        auto resp = client::detail::receiveResponse(aoCtx, *pushbackReader).get();
 
         return asString(nhope::readAll(*resp.body).get());
     };
 
     auto router = Router();
     router.get("/echo", [](RequestContext& ctx) {
-        ctx.responce.status = HttpStatus::Ok;
-        ctx.responce.body = std::move(ctx.request.body);
-        ctx.responce.headers = ctx.request.headers;
+        ctx.response.status = HttpStatus::Ok;
+        ctx.response.body = std::move(ctx.request.body);
+        ctx.response.headers = ctx.request.headers;
         return nhope::makeReadyFuture();
     });
 
@@ -77,7 +77,7 @@ TEST(Server, Echo)   // NOLINT
                                       .bindAddress = "127.0.0.1",
                                       .port = port,
                                       .router = std::move(router),
-                                      .log = nullLogger(),
+                                      .log = spdlog::default_logger(),
                                     });
 
     for (int i = 0; i < iterCount; ++i) {

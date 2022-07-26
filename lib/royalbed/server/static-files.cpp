@@ -66,13 +66,13 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
     router.get(resourcePath,
                [file, contentEncoding,
                 contentType = std::string(common::mimeTypeForFileName(resourcePath))](RequestContext& ctx) {
-                   ctx.responce.headers["Content-Length"] = std::to_string(file.size());
-                   ctx.responce.headers["Content-Type"] = contentType;
+                   ctx.response.headers["Content-Length"] = std::to_string(file.size());
+                   ctx.response.headers["Content-Type"] = contentType;
 
                    if (contentEncoding != std::nullopt) {
-                       ctx.responce.headers["Content-Encoding"] = contentEncoding.value();
+                       ctx.response.headers["Content-Encoding"] = contentEncoding.value();
                    };
-                   ctx.responce.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
+                   ctx.response.body = nhope::StringReader::create(ctx.aoCtx, {file.begin(), file.end()});
                });
     if (filename == indexHtml) {
         // Redirect to index page
@@ -81,8 +81,8 @@ void publicFile(Router& router, const cmrc::embedded_filesystem& fs, const cmrc:
             if (!path.empty() && path.back() == '/') {
                 path.pop_back();
             }
-            ctx.responce.headers["Location"] = fmt::format("{}/{}", path, indexHtml);
-            ctx.responce.status = HttpStatus::Found;
+            ctx.response.headers["Location"] = fmt::format("{}/{}", path, indexHtml);
+            ctx.response.status = HttpStatus::Found;
         });
     }
 }

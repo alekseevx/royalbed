@@ -7,7 +7,7 @@
 #include "nhope/io/pushback-reader.h"
 #include "nhope/io/string-reader.h"
 
-#include "royalbed/client/detail/receive-responce.h"
+#include "royalbed/client/detail/receive-response.h"
 #include "royalbed/client/headers.h"
 #include "royalbed/client/http-error.h"
 
@@ -22,15 +22,15 @@ using namespace royalbed::client::detail;
 
 }   // namespace
 
-TEST(ReceiveResponce, OnlyStatusLine)   // NOLINT
+TEST(ReceiveResponse, OnlyStatusLine)   // NOLINT
 {
-    constexpr auto rawResponce = "HTTP/1.1 200 Status text\r\n\r\n";
+    constexpr auto rawResponse = "HTTP/1.1 200 Status text\r\n\r\n";
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
-    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponce));
-    receiveResponce(aoCtx, *conn)
+    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponse));
+    receiveResponse(aoCtx, *conn)
       .then([](auto resp) {
           EXPECT_EQ(resp.status, 200);
           EXPECT_EQ(resp.statusMessage, "Status text");
@@ -44,18 +44,18 @@ TEST(ReceiveResponce, OnlyStatusLine)   // NOLINT
       .get();
 }
 
-TEST(ReceiveResponce, OnlyHeaders)   // NOLINT
+TEST(ReceiveResponse, OnlyHeaders)   // NOLINT
 {
-    constexpr auto rawResponce = "HTTP/1.1 201\r\n"
+    constexpr auto rawResponse = "HTTP/1.1 201\r\n"
                                  "Header1: Value1\r\n"
                                  "Header2: Value2\r\n"
                                  "\r\n";
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
-    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponce));
+    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponse));
 
-    receiveResponce(aoCtx, *conn)
+    receiveResponse(aoCtx, *conn)
       .then([](auto resp) {
           EXPECT_EQ(resp.status, 201);
           EXPECT_EQ(resp.statusMessage, "");
@@ -72,51 +72,51 @@ TEST(ReceiveResponce, OnlyHeaders)   // NOLINT
       .get();
 }
 
-TEST(ReceiveResponce, BadResponce)   // NOLINT
+TEST(ReceiveResponse, Badresponse)   // NOLINT
 {
-    constexpr auto rawResponce = "HTP/1.1 201\r\n";
+    constexpr auto rawResponse = "HTP/1.1 201\r\n";
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
-    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponce));
+    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponse));
 
-    auto future = receiveResponce(aoCtx, *conn);
+    auto future = receiveResponse(aoCtx, *conn);
 
     // FIXME: Need more suitable error
     EXPECT_THROW(future.get(), HttpError);   // NOLINT
 }
 
-TEST(ReceiveResponce, IncompleteResponce)   // NOLINT
+TEST(ReceiveResponse, Incompleteresponse)   // NOLINT
 {
-    constexpr auto rawResponce = "HTP/1.1 201\r";
+    constexpr auto rawResponse = "HTP/1.1 201\r";
 
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
-    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponce));
+    auto conn = nhope::PushbackReader::create(aoCtx, nhope::StringReader::create(aoCtx, rawResponse));
 
-    auto future = receiveResponce(aoCtx, *conn);
+    auto future = receiveResponse(aoCtx, *conn);
 
     // FIXME: Need more suitable error
     EXPECT_THROW(future.get(), HttpError);   // NOLINT
 }
 
-TEST(ReceiveResponce, IOError)   // NOLINT
+TEST(ReceiveResponse, IOError)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
 
     auto conn = nhope::PushbackReader::create(
       aoCtx,                                                                        //
-      nhope::concat(aoCtx, nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK"),   // Begining of the responce header
+      nhope::concat(aoCtx, nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK"),   // Begining of the response header
                     BrokenSock::create(aoCtx))                                      // IOError
     );
 
-    auto future = receiveResponce(aoCtx, *conn);
+    auto future = receiveResponse(aoCtx, *conn);
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
 
-TEST(ReceiveResponce, BodyReader_IOError)   // NOLINT
+TEST(ReceiveResponse, BodyReader_IOError)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
@@ -124,21 +124,21 @@ TEST(ReceiveResponce, BodyReader_IOError)   // NOLINT
     auto conn = nhope::PushbackReader::create(
       aoCtx,                                                                      //
       nhope::concat(aoCtx,                                                        //
-                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK\r\n"      // Begining of the responce header
+                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK\r\n"      // Begining of the response header
                                                        "Content-Length: 10\r\n"   //
                                                        "\r\n"                     //
                                                        "123456"),                 //
                     BrokenSock::create(aoCtx))                                    // IOError
     );
 
-    auto future = receiveResponce(aoCtx, *conn).then([](auto resp) {
+    auto future = receiveResponse(aoCtx, *conn).then([](auto resp) {
         return nhope::readAll(std::move(resp.body));
     });
 
     EXPECT_THROW(future.get(), std::system_error);   // NOLINT
 }
 
-TEST(ReceiveResponce, Cancel)   // NOLINT
+TEST(Receiveresponse, Cancel)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
@@ -146,11 +146,11 @@ TEST(ReceiveResponce, Cancel)   // NOLINT
     auto conn = nhope::PushbackReader::create(
       aoCtx,                                                               //
       nhope::concat(aoCtx,                                                 //
-                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 "),   // Begining of the responce header
+                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 "),   // Begining of the response header
                     SlowSock::create(aoCtx))                               // long reading
     );
 
-    auto future = receiveResponce(aoCtx, *conn);
+    auto future = receiveResponse(aoCtx, *conn);
 
     EXPECT_FALSE(future.waitFor(100ms));
 
@@ -159,7 +159,7 @@ TEST(ReceiveResponce, Cancel)   // NOLINT
     EXPECT_THROW(future.get(), nhope::AsyncOperationWasCancelled);   // NOLINT
 }
 
-TEST(ReceiveResponce, BodyReader_Cancel)   // NOLINT
+TEST(ReceiveResponse, BodyReader_Cancel)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
@@ -167,14 +167,14 @@ TEST(ReceiveResponce, BodyReader_Cancel)   // NOLINT
     auto conn = nhope::PushbackReader::create(
       aoCtx,                                                                      //
       nhope::concat(aoCtx,                                                        //
-                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK\r\n"      // Begining of the responce header
+                    nhope::StringReader::create(aoCtx, "HTTP/1.1 200 OK\r\n"      // Begining of the response header
                                                        "Content-Length: 10\r\n"   //
                                                        "\r\n"                     //
                                                        "123456"),                 //
                     SlowSock::create(aoCtx))                                      // long body reading
     );
 
-    auto future = receiveResponce(aoCtx, *conn).then([](auto resp) {
+    auto future = receiveResponse(aoCtx, *conn).then([](auto resp) {
         return nhope::readAll(std::move(resp.body));
     });
 
@@ -183,7 +183,7 @@ TEST(ReceiveResponce, BodyReader_Cancel)   // NOLINT
     EXPECT_THROW(future.get(), nhope::AsyncOperationWasCancelled);   // NOLINT
 }
 
-TEST(ReceiveResponce, TwoResponce)   // NOLINT
+TEST(ReceiveResponse, TwoResponse)   // NOLINT
 {
     nhope::ThreadExecutor executor;
     nhope::AOContext aoCtx(executor);
@@ -199,14 +199,14 @@ TEST(ReceiveResponce, TwoResponce)   // NOLINT
                                          "\r\n"
                                          "second-body"));
 
-    receiveResponce(aoCtx, *conn)
+    receiveResponse(aoCtx, *conn)
       .then([](auto resp) {
           return nhope::readAll(std::move(resp.body));
       })
       .then([&](auto content) {
           EXPECT_EQ(asString(content), "first-body");
 
-          return receiveResponce(aoCtx, *conn).then([](auto resp) {
+          return receiveResponse(aoCtx, *conn).then([](auto resp) {
               return nhope::readAll(std::move(resp.body));
           });
       })
