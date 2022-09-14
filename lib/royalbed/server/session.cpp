@@ -73,6 +73,9 @@ public:
           .num = param.num,
           .log = std::move(param.log),
           .router = param.ctx.router(),
+          .request{},
+          .rawPathParams{},
+          .response{},
           .aoCtx = nhope::AOContext(aoCtx),
         }
         , m_upTime(m_requestCtx.log, "session time:")
@@ -85,7 +88,7 @@ public:
     }
 
 private:
-    ~Session()
+    ~Session() override
     {
         assert(m_finished);   // NOLINT
         m_requestCtx.aoCtx.removeCloseHandler(*this);

@@ -7,6 +7,7 @@
 #include "gtest/gtest.h"
 
 #include "nhope/async/event.h"
+#include "royalbed/common/http-status.h"
 #include "spdlog/spdlog.h"
 
 #include "nhope/async/ao-context-close-handler.h"
@@ -206,7 +207,8 @@ TEST(Session, ExceptionInHandler)   // NOLINT
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto response = out->takeContent();
-    EXPECT_TRUE(response.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("HTTP/1.1 400 Bad Request\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("\r\nXXX") != std::string::npos);
     EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
     EXPECT_TRUE(response.find("Date:") != std::string::npos);
 }
@@ -267,4 +269,30 @@ TEST(Session, Close)   // NOLINT
     aoCtx.close();
 
     EXPECT_TRUE(testSessionCtx.wait(1s));
+}
+
+TEST(Session, NoContent)   // NOLINT
+{
+    auto router = Router();
+    router.get("/path", [](RequestContext& ctx) {
+        ctx.response.status = HttpStatus::NoContent;
+    });
+
+    auto executor = nhope::ThreadExecutor();
+    auto aoCtx = nhope::AOContext(executor);
+    TestSessionCtx testSessionCtx(std::move(router));
+
+    auto in = inputStream(aoCtx, "GET /path HTTP/1.1\r\nConnection: close\r\n\r\n");
+    auto out = nhope::StringWritter::create(aoCtx);
+    startSession(aoCtx, SessionParams{
+                          .ctx = testSessionCtx,
+                          .in = *in,
+                          .out = *out,
+                          .log = nullLogger(),
+                        });
+
+    EXPECT_TRUE(testSessionCtx.wait(1s));
+
+    const auto response = out->takeContent();
+    EXPECT_TRUE(response.find("HTTP/1.1 204 No Content\r\n") != std::string::npos);
 }
