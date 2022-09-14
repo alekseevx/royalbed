@@ -206,7 +206,8 @@ TEST(Session, ExceptionInHandler)   // NOLINT
     EXPECT_TRUE(testSessionCtx.wait(1s));
 
     const auto response = out->takeContent();
-    EXPECT_TRUE(response.find("HTTP/1.1 400 XXX\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("HTTP/1.1 400 Bad Request\r\n") != std::string::npos);
+    EXPECT_TRUE(response.find("\r\nXXX") != std::string::npos);
     EXPECT_TRUE(response.find("Connection: close\r\n") != std::string::npos);
     EXPECT_TRUE(response.find("Date:") != std::string::npos);
 }

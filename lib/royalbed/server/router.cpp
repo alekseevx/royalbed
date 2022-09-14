@@ -135,14 +135,9 @@ const auto defaultExceptionHandler = ExceptionHandler{[](RequestContext& ctx, st
     try {
         std::rethrow_exception(std::move(ex));
     } catch (const HttpError& e) {
-        ctx.response = {
-          .status = e.httpStatus(),
-          .statusMessage = e.what(),
-          .headers = {},
-          .body = nullptr,
-        };
+        ctx.response = common::makePlainTextResponse(ctx.aoCtx, e.httpStatus(), e.what());
     } catch (const std::exception& e) {
-        ctx.response = makePlainTextResponse(ctx.aoCtx, HttpStatus::InternalServerError, e.what());
+        ctx.response = common::makePlainTextResponse(ctx.aoCtx, HttpStatus::InternalServerError, e.what());
     }
     return nhope::makeReadyFuture();
 }};
